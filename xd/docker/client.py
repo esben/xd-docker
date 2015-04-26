@@ -10,6 +10,9 @@ requests_unixsocket.monkeypatch()
 import json
 
 
+from xd.docker.container import *
+
+
 __all__ = ['DockerClient', 'HTTPError']
 
 
@@ -44,3 +47,15 @@ class DockerClient(object):
 
     def ping(self):
         self._get('/_ping')
+
+    def containers(self, all_=False):
+        params = {}
+        params['all'] = all_
+        r = self._get('/containers/json', params=params)
+        containers = {}
+        for c in json.loads(r.text):
+            containers[c['Id']] = DockerContainer(
+                id_=c['Id'], names=c.get('Names', []),
+                command=c['Command'], ports=c['Ports'],
+                image=c['Image'], created=c['Created'])
+        return containers

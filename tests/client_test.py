@@ -4,6 +4,7 @@ import mock
 import requests_mock
 
 from xd.docker.client import *
+from xd.docker.container import *
 
 class tests(unittest.case.TestCase):
 
@@ -63,3 +64,71 @@ class tests(unittest.case.TestCase):
         get_mock.return_value = requests_mock.Response('Server Error\n', 500)
         with self.assertRaises(HTTPError):
             client.ping()
+
+    @mock.patch('requests.get')
+    def test_containers(self, get_mock):
+        client = DockerClient()
+        get_mock.return_value = requests_mock.Response(
+            '''[
+            {
+            "Id": "8dfafdbc3a40",
+            "Image": "ubuntu:latest",
+            "Command": "echo 1",
+            "Created": 1367854155,
+            "Status": "Up 42 seconds",
+            "Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}],
+            "SizeRw": 12288,
+            "SizeRootFs": 0
+            },
+            {
+            "Id": "9cd87474be90",
+            "Image": "ubuntu:latest",
+            "Command": "echo 222222",
+            "Created": 1367854155,
+            "Status": "Up 666 seconds",
+            "Ports": [],
+            "SizeRw": 12288,
+            "SizeRootFs": 0
+            }
+]\n''', 200)
+        containers = client.containers()
+        self.assertTrue(get_mock.called)
+        self.assertEqual(len(containers), 2)
+        for container in containers.values():
+            self.assertIsInstance(container, DockerContainer)
+        self.assertIn('8dfafdbc3a40', containers)
+        self.assertIn('9cd87474be90', containers)
+
+    @mock.patch('requests.get')
+    def test_containers_all(self, get_mock):
+        client = DockerClient()
+        get_mock.return_value = requests_mock.Response(
+            '''[
+            {
+            "Id": "3176a2479c92",
+            "Image": "ubuntu:latest",
+            "Command": "echo 3333333333333333",
+            "Created": 1367854154,
+            "Status": "Exit 0",
+            "Ports":[],
+            "SizeRw":12288,
+            "SizeRootFs":0
+            },
+            {
+            "Id": "4cb07b47f9fb",
+            "Image": "ubuntu:latest",
+            "Command": "echo 444444444444444444444444444444444",
+            "Created": 1367854152,
+            "Status": "Exit 0",
+            "Ports": [],
+            "SizeRw": 12288,
+            "SizeRootFs": 0
+            }
+]\n''', 200)
+        containers = client.containers()
+        self.assertTrue(get_mock.called)
+        self.assertEqual(len(containers), 2)
+        for container in containers.values():
+            self.assertIsInstance(container, DockerContainer)
+        self.assertIn('3176a2479c92', containers)
+        self.assertIn('4cb07b47f9fb', containers)
