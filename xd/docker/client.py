@@ -30,10 +30,14 @@ class DockerClient(object):
             host = 'http+unix://' + urllib.parse.quote_plus(host[7:])
         self.base_url = host
 
-    def version(self):
-        url = self.base_url + '/version'
+    def _get(self, url, ok_status_codes=[200]):
+        url = self.base_url + url
         r = requests.get(url)
-        if r.status_code != 200:
+        if r.status_code not in ok_status_codes:
             raise HTTPError(url, r.status_code)
+        return r
+
+    def version(self):
+        r = self._get('/version')
         version = json.loads(r.text)
         return version
