@@ -3,6 +3,7 @@ python:
   - "3.4"
 install:
   - "pip install coveralls"
+  - "pip install requests requests_unixsocket"
   - "git config --global user.email 'travis@xd-embedded.org'"
   - "git config --global user.name 'Travis CI'"
 script: "nosetests"
