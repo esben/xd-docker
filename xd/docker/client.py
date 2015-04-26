@@ -30,9 +30,9 @@ class DockerClient(object):
             host = 'http+unix://' + urllib.parse.quote_plus(host[7:])
         self.base_url = host
 
-    def _get(self, url, ok_status_codes=[200]):
+    def _get(self, url, params=None, ok_status_codes=[200]):
         url = self.base_url + url
-        r = requests.get(url)
+        r = requests.get(url, params=params)
         if r.status_code not in ok_status_codes:
             raise HTTPError(url, r.status_code)
         return r
