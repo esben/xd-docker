@@ -49,3 +49,17 @@ class tests(unittest.case.TestCase):
             '404 page not found\n', 404)
         with self.assertRaises(HTTPError):
             client.version()
+
+    @mock.patch('requests.get')
+    def test_ping(self, get_mock):
+        client = DockerClient()
+        get_mock.return_value = requests_mock.Response('OK\n', 200)
+        client.ping()
+        self.assertTrue(get_mock.called)
+
+    @mock.patch('requests.get')
+    def test_ping_server_error(self, get_mock):
+        client = DockerClient()
+        get_mock.return_value = requests_mock.Response('Server Error\n', 500)
+        with self.assertRaises(HTTPError):
+            client.ping()

@@ -41,3 +41,6 @@ class DockerClient(object):
         r = self._get('/version')
         version = json.loads(r.text)
         return version
+
+    def ping(self):
+        self._get('/_ping')
