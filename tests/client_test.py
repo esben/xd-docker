@@ -5,6 +5,7 @@ import requests_mock
 
 from xd.docker.client import *
 from xd.docker.container import *
+from xd.docker.image import *
 
 class tests(unittest.case.TestCase):
 
@@ -96,6 +97,7 @@ class tests(unittest.case.TestCase):
         self.assertEqual(len(containers), 2)
         for container in containers.values():
             self.assertIsInstance(container, DockerContainer)
+            self.assertIsInstance(container.image, DockerImage)
         self.assertIn('8dfafdbc3a40', containers)
         self.assertIn('9cd87474be90', containers)
 
@@ -130,5 +132,6 @@ class tests(unittest.case.TestCase):
         self.assertEqual(len(containers), 2)
         for container in containers.values():
             self.assertIsInstance(container, DockerContainer)
+            self.assertIsInstance(container.image, DockerImage)
         self.assertIn('3176a2479c92', containers)
         self.assertIn('4cb07b47f9fb', containers)

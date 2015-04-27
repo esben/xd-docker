@@ -2,6 +2,8 @@ import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
+from xd.docker.image import *
+
 
 __all__ = ['DockerContainer']
 
@@ -17,5 +19,8 @@ class DockerContainer(object):
         self.names = names
         self.command = command
         self.ports = ports
-        self.image = image
+        if image is not None:
+            self.image = DockerImage(image)
+        else:
+            self.image = None
         self.created = created
