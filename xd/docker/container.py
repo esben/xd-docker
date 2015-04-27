@@ -9,9 +9,10 @@ __all__ = ['DockerContainer']
 class DockerContainer(object):
     """Docker container."""
 
-    def __init__(self, id_=None, names=None, command=None, ports=None,
+    def __init__(self, client, id_=None, names=None, command=None, ports=None,
                  image=None, created=None):
         """Docker container concstructor."""
+        self.client = client
         self.id_ = id_
         self.names = names
         self.command = command
