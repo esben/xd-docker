@@ -69,3 +69,13 @@ class DockerClient(object):
                 self, id_=c['Id'], created=c['Created'], tags=c['RepoTags'],
                 size=c['Size'], virtual_size=c['VirtualSize'])
         return images
+
+    def image_inspect(self, name, raw=False):
+        r = self._get('/images/{}/json'.format(name))
+        i = json.loads(r.text)
+        if raw:
+            return i
+        else:
+            return DockerImage(
+                self, id_=i['Id'], created=i['Created'], size=i['Size'],
+                parent=i['Parent'])

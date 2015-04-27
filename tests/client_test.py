@@ -173,3 +173,83 @@ class tests(unittest.case.TestCase):
         self.assertIn('8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c', images)
         self.assertIn('b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc', images)
         self.assertEqual(images['8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c'].size, 131506275)
+
+    @mock.patch('requests.get')
+    def test_image_inspect(self, get_mock):
+        client = DockerClient()
+        get_mock.return_value = requests_mock.Response('''\
+{
+  "Created": "2013-03-23T22:24:18.818426-07:00",
+  "Container": "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
+  "ContainerConfig": {
+    "Hostname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "PortSpecs": null,
+    "Tty": true,
+    "OpenStdin": true,
+    "StdinOnce": false,
+    "Env": null,
+    "Cmd": ["/bin/bash"],
+    "Dns": null,
+    "Image": "ubuntu",
+    "Labels": {
+        "com.example.vendor": "Acme",
+        "com.example.license": "GPL",
+        "com.example.version": "1.0"
+    },
+    "Volumes": null,
+    "VolumesFrom": "",
+    "WorkingDir": ""
+  },
+  "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+  "Parent": "27cf784147099545",
+  "Size": 6824592
+}
+''', 200)
+        image = client.image_inspect('foobar')
+        self.assertTrue(get_mock.called)
+        self.assertIsInstance(image, DockerImage)
+        self.assertEqual(image.size, 6824592)
+
+    @mock.patch('requests.get')
+    def test_image_inspect_raw(self, get_mock):
+        client = DockerClient()
+        get_mock.return_value = requests_mock.Response('''\
+{
+  "Created": "2013-03-23T22:24:18.818426-07:00",
+  "Container": "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
+  "ContainerConfig": {
+    "Hostname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "PortSpecs": null,
+    "Tty": true,
+    "OpenStdin": true,
+    "StdinOnce": false,
+    "Env": null,
+    "Cmd": ["/bin/bash"],
+    "Dns": null,
+    "Image": "ubuntu",
+    "Labels": {
+        "com.example.vendor": "Acme",
+        "com.example.license": "GPL",
+        "com.example.version": "1.0"
+    },
+    "Volumes": null,
+    "VolumesFrom": "",
+    "WorkingDir": ""
+  },
+  "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+  "Parent": "27cf784147099545",
+  "Size": 6824592
+}
+''', 200)
+        image = client.image_inspect('foobar', raw=True)
+        self.assertTrue(get_mock.called)
+        self.assertIsInstance(image, dict)
+        self.assertEqual(image['Size'], 6824592)
