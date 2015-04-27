@@ -11,6 +11,7 @@ import json
 
 
 from xd.docker.container import *
+from xd.docker.image import *
 
 
 __all__ = ['DockerClient', 'HTTPError']
@@ -59,3 +60,12 @@ class DockerClient(object):
                 command=c['Command'], ports=c['Ports'],
                 image=c['Image'], created=c['Created'])
         return containers
+
+    def images(self):
+        r = self._get('/images/json')
+        images = {}
+        for c in json.loads(r.text):
+            images[c['Id']] = DockerImage(
+                self, id_=c['Id'], created=c['Created'], tags=c['RepoTags'],
+                size=c['Size'], virtual_size=c['VirtualSize'])
+        return images
