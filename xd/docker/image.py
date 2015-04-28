@@ -3,8 +3,11 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-__all__ = ['DockerImage']
+__all__ = ['DockerImage', 'AnonymousImage']
 
+
+class AnonymousImage(Exception):
+    pass
 
 class DockerImage(object):
     """Docker image."""
@@ -22,3 +25,16 @@ class DockerImage(object):
         self.parent = parent
         self.context = context
         self.dockerfile = dockerfile
+
+    def inspect(self):
+        if self.id_:
+            name = self.id_
+        elif self.tags:
+            name = self.tags[0]
+        else:
+            raise AnonymousImage()
+        i = self.client.image_inspect(name, raw=True)
+        self.id_ = i['Id'],
+        self.created = i['Created']
+        self.size = i['Size']
+        self.parent = i['Parent']
