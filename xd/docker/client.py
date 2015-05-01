@@ -32,6 +32,10 @@ class DockerClient(object):
             host = 'unix:///var/run/docker.sock'
         if host.startswith('unix://'):
             host = 'http+unix://' + urllib.parse.quote_plus(host[7:])
+        elif host.startswith('tcp://'):
+            host = 'http://' + host[6:]
+        else:
+            raise ValueError('Invalid host value: {}'.format(host))
         self.base_url = host
 
     def _get(self, url, params=None, ok_status_codes=[200]):

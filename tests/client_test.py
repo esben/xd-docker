@@ -12,10 +12,31 @@ class tests(unittest.case.TestCase):
     def test_init_noargs(self):
         client = DockerClient()
         self.assertIsNotNone(client)
+        self.assertEqual(client.base_url,
+                         'http+unix://%2Fvar%2Frun%2Fdocker.sock')
 
-    def test_init_args(self):
+    def test_init_unix(self):
+        client = DockerClient('unix:///var/run/docker.sock')
+        self.assertIsNotNone(client)
+        self.assertEqual(client.base_url,
+                         'http+unix://%2Fvar%2Frun%2Fdocker.sock')
+
+    def test_init_tcp(self):
         client = DockerClient('tcp://127.0.0.1:2375')
         self.assertIsNotNone(client)
+        self.assertEqual(client.base_url, 'http://127.0.0.1:2375')
+
+    def test_init_http(self):
+        with self.assertRaises(ValueError):
+            DockerClient('http://127.0.0.1:2375')
+
+    def test_init_http_unix(self):
+        with self.assertRaises(ValueError):
+            DockerClient('http+unix://127.0.0.1:2375')
+
+    def test_init_foobar(self):
+        with self.assertRaises(ValueError):
+            DockerClient('foobar')
 
     @mock.patch('requests.get')
     def test_version(self, get_mock):
