@@ -1,11 +1,21 @@
 import unittest
 import mock
+import io
+import contextlib
+import tempfile
+import shutil
+import os
+import re
 
 import requests_mock
 
 from xd.docker.client import *
 from xd.docker.container import *
 from xd.docker.image import *
+
+LOCAL_DOCKER_HOST = None
+#LOCAL_DOCKER_HOST = 'tcp://127.0.0.1:2375'
+#LOCAL_DOCKER_HOST = 'unix:///var/run/docker.sock'
 
 
 class init_tests(unittest.case.TestCase):
@@ -44,6 +54,10 @@ class mocked_tests(unittest.case.TestCase):
 
     def setUp(self):
         self.client = DockerClient()
+        self.context = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.context)
 
     @mock.patch('requests.get')
     def test_version(self, get_mock):
@@ -272,3 +286,598 @@ class mocked_tests(unittest.case.TestCase):
         self.assertTrue(get_mock.called)
         self.assertIsInstance(image, dict)
         self.assertEqual(image['Size'], 6824592)
+
+    @mock.patch('requests.post')
+    def test_image_build(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    @mock.patch('requests.post')
+    def test_image_build_context_as_file(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(os.path.join(self.context, 'Dockerfile'))
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    @mock.patch('requests.post')
+    def test_image_build_nonstandard_dockerfile(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'DockerfileX'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, dockerfile='DockerfileX')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    @mock.patch('requests.post')
+    def test_image_build_with_name(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context,
+                                    name='xd-docker-unittest:REMOVE')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    @mock.patch('requests.post')
+    def test_image_build_with_nocache(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---> Running in e4d9194b48f8"}
+{"stream":"Hello world\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, nocache=True)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Running in [0-9a-f]+
+Hello world
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+        kwargs = post_mock.call_args[1]
+        self.assertEqual(kwargs['params'], {'nocache': 1})
+
+    @mock.patch('requests.post')
+    def test_image_build_with_norm(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, rm=False)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+        kwargs = post_mock.call_args[1]
+        self.assertEqual(kwargs['params'], {'rm': 0})
+
+    @mock.patch('requests.post')
+    def test_image_build_with_forcerm(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, rm='force')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+        kwargs = post_mock.call_args[1]
+        self.assertEqual(kwargs['params'], {'forcerm': 1})
+
+    @mock.patch('requests.post')
+    def test_image_build_with_args(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context,
+                                    memory=10000000, memswap=2000000,
+                                    cpushares=42, cpusetcpus='0-3')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+        kwargs = post_mock.call_args[1]
+        self.assertEqual(kwargs['params'],
+                         {'memory': 10000000, 'memswap': 2000000,
+                          'cpushares': 42, 'cpusetcpus': '0-3'})
+
+    @mock.patch('requests.post')
+    def test_image_build_with_only_error_output(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context,
+                                    name='xd-docker-unittest:REMOVE')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+( ---> Using cache|\
+ ---> Running in [0-9a-f]+
+Hello world)
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    @mock.patch('requests.post')
+    def test_image_build_with_registry_config(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, registry_config={
+                "https://index.docker.io/v1/": {
+                    "auth": "xXxXxXxXxXx=",
+                    "email": "username@example.com"
+                },
+                "https://index.example.com": {
+                    "auth": "XxXxXxXxXxX=",
+                    "email": "username@example.com"
+                }
+            })
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+( ---> Using cache|\
+ ---> Running in [0-9a-f]+
+Hello world)
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    @mock.patch('requests.post')
+    def test_image_build_with_pull(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"status":"Pulling repository debian"}
+{"status":"Pulling image (jessie) from debian","progressDetail":{},"id":"41b730702607"}{"status":"Pulling image (jessie) from debian, endpoint: https://registry-1.docker.io/v1/","progressDetail":{},"id":"41b730702607"}{"status":"Pulling dependent layers","progressDetail":{},"id":"41b730702607"}{"status":"Download complete","progressDetail":{},"id":"3cb35ae859e7"}{"status":"Download complete","progressDetail":{},"id":"41b730702607"}{"status":"Download complete","progressDetail":{},"id":"41b730702607"}{"status":"Status: Image is up to date for debian:jessie"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, pull=True)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+Pulling repository debian
+Pulling image \(jessie\) from debian
+Pulling image \(jessie\) from debian, endpoint: https://registry-1.docker.io/v1/
+Pulling dependent layers
+Download complete
+Download complete
+Download complete
+Status: Image is up to date for debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+        kwargs = post_mock.call_args[1]
+        self.assertEqual(kwargs['params'], {'pull': 1})
+
+    @mock.patch('requests.post')
+    def test_image_build_server_error(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        post_mock.return_value = requests_mock.Response('Server Error\n', 500)
+        with self.assertRaises(HTTPError):
+            self.client.image_build(self.context)
+
+    @mock.patch('requests.post')
+    def test_image_build_invalid_registry_config(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with self.assertRaises(TypeError):
+            self.client.image_build(self.context, registry_config=42)
+
+    @mock.patch('requests.post')
+    def test_image_build_context_does_not_exist(self, post_mock):
+        post_mock.return_value = requests_mock.Response('Server Error\n', 500)
+        with self.assertRaises(ValueError):
+            self.client.image_build(os.path.join(self.context, 'MISSING'))
+
+    @mock.patch('requests.post')
+    def test_image_build_run_error(self, post_mock):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN false
+''')
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie"}
+{"stream":" ---> 0e30e84e9513"}
+{"stream":"Step 1 : RUN false"}
+{"stream":" ---> Running in e4d9194b48f8"}
+{"error":"The command [/bin/sh -c false] returned a non-zero code: 1","errorDetail":{"message":"The command [/bin/sh -c false] returned a non-zero code: 1"}}
+''', 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context)
+
+
+@unittest.skipIf(not LOCAL_DOCKER_HOST,
+                 'Live docker tests requires local docker host')
+class live_tests(unittest.case.TestCase):
+
+    def setUp(self):
+        self.client = DockerClient(host=LOCAL_DOCKER_HOST)
+        self.context = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.context)
+
+    def test_image_build_1_pull(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, pull=True, nocache=True)
+        self.assertRegex(out.getvalue(), re.compile('''\
+Step 0 : FROM debian:jessie
+Pulling repository debian
+Pulling image \(jessie\) from debian
+Pulling image \(jessie\) from debian, endpoint: .*
+Pulling dependent layers
+(Download complete
+)*Status: Image is up to date for debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Running in [0-9a-f]+
+Hello world
+ ---> [0-9a-f]+
+Removing intermediate container [0-9a-f]+
+Successfully built [0-9a-f]+
+''', re.MULTILINE))
+
+    def test_image_build_2_nocache(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, nocache=True)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Running in [0-9a-f]+
+Hello world
+ ---> [0-9a-f]+
+Removing intermediate container [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    def test_image_build_2_nocache_norm(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, nocache=True, rm=False)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Running in [0-9a-f]+
+Hello world
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    def test_image_build_2_nocache_forcerm(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, nocache=True, rm='force')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Running in [0-9a-f]+
+Hello world
+ ---> [0-9a-f]+
+Removing intermediate container [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    def test_image_build_3_cached(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    def test_image_build_4_nonstandard_dockerfile(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'DockerfileX'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, dockerfile='DockerfileX')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    def test_image_build_4_context_as_file(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(os.path.join(self.context, 'Dockerfile'))
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+( ---> Using cache|\
+ ---> Running in [0-9a-f]+
+Hello world)
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    def test_image_build_4_and_tag(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context,
+                                    name='xd-docker-unittest:REMOVE')
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN echo Hello world
+ ---> Using cache
+ ---> [0-9a-f]+
+Successfully built [0-9a-f]+
+''')
+
+    def test_image_build_2_error(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN false
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, nocache=True)
+        self.assertRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+ ---> [0-9a-f]+
+Step 1 : RUN false
+ ---> Running in [0-9a-f]+
+The command \[/bin/sh -c false\] returned a non-zero code: 1
+''')
+
+    def test_image_build_2_error_quiet(self):
+        out = io.StringIO()
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN false
+''')
+        with contextlib.redirect_stdout(out):
+            self.client.image_build(self.context, nocache=True,
+                                    output=('error'))
+        self.assertRegex(out.getvalue(), '''\
+The command \[/bin/sh -c false\] returned a non-zero code: 1
+''')
+        self.assertNotRegex(out.getvalue(), '''\
+Step 0 : FROM debian:jessie
+''')
+
+
+# nocache
+# pull
+# rm=False
+# rm='force'
