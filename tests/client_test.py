@@ -7,7 +7,8 @@ from xd.docker.client import *
 from xd.docker.container import *
 from xd.docker.image import *
 
-class tests(unittest.case.TestCase):
+
+class init_tests(unittest.case.TestCase):
 
     def test_init_noargs(self):
         client = DockerClient()
@@ -38,9 +39,14 @@ class tests(unittest.case.TestCase):
         with self.assertRaises(ValueError):
             DockerClient('foobar')
 
+
+class mocked_tests(unittest.case.TestCase):
+
+    def setUp(self):
+        self.client = DockerClient()
+
     @mock.patch('requests.get')
     def test_version(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response(
             '''{
             "Version": "1.5.0",
@@ -51,7 +57,7 @@ class tests(unittest.case.TestCase):
             "Arch": "amd64",
             "ApiVersion": "1.18"
 }\n''', 200)
-        versions = client.version()
+        versions = self.client.version()
         self.assertTrue(get_mock.called)
         self.assertIn('Version', versions)
         self.assertEqual(versions['Version'], '1.5.0')
@@ -67,29 +73,25 @@ class tests(unittest.case.TestCase):
 
     @mock.patch('requests.get')
     def test_version_httperror(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response(
             '404 page not found\n', 404)
         with self.assertRaises(HTTPError):
-            client.version()
+            self.client.version()
 
     @mock.patch('requests.get')
     def test_ping(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response('OK\n', 200)
-        client.ping()
+        self.client.ping()
         self.assertTrue(get_mock.called)
 
     @mock.patch('requests.get')
     def test_ping_server_error(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response('Server Error\n', 500)
         with self.assertRaises(HTTPError):
-            client.ping()
+            self.client.ping()
 
     @mock.patch('requests.get')
     def test_containers(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response(
             '''[
             {
@@ -113,7 +115,7 @@ class tests(unittest.case.TestCase):
             "SizeRootFs": 0
             }
 ]\n''', 200)
-        containers = client.containers()
+        containers = self.client.containers()
         self.assertTrue(get_mock.called)
         self.assertEqual(len(containers), 2)
         for container in containers.values():
@@ -124,7 +126,6 @@ class tests(unittest.case.TestCase):
 
     @mock.patch('requests.get')
     def test_containers_all(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response(
             '''[
             {
@@ -148,7 +149,7 @@ class tests(unittest.case.TestCase):
             "SizeRootFs": 0
             }
 ]\n''', 200)
-        containers = client.containers()
+        containers = self.client.containers()
         self.assertTrue(get_mock.called)
         self.assertEqual(len(containers), 2)
         for container in containers.values():
@@ -159,7 +160,6 @@ class tests(unittest.case.TestCase):
 
     @mock.patch('requests.get')
     def test_images(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response('''\
 [
   {
@@ -186,7 +186,7 @@ class tests(unittest.case.TestCase):
   }
 ]
 ''', 200)
-        images = client.images()
+        images = self.client.images()
         self.assertTrue(get_mock.called)
         self.assertEqual(len(images), 2)
         for image in images.values():
@@ -197,7 +197,6 @@ class tests(unittest.case.TestCase):
 
     @mock.patch('requests.get')
     def test_image_inspect(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response('''\
 {
   "Created": "2013-03-23T22:24:18.818426-07:00",
@@ -230,14 +229,13 @@ class tests(unittest.case.TestCase):
   "Size": 6824592
 }
 ''', 200)
-        image = client.image_inspect('foobar')
+        image = self.client.image_inspect('foobar')
         self.assertTrue(get_mock.called)
         self.assertIsInstance(image, DockerImage)
         self.assertEqual(image.size, 6824592)
 
     @mock.patch('requests.get')
     def test_image_inspect_raw(self, get_mock):
-        client = DockerClient()
         get_mock.return_value = requests_mock.Response('''\
 {
   "Created": "2013-03-23T22:24:18.818426-07:00",
@@ -270,7 +268,7 @@ class tests(unittest.case.TestCase):
   "Size": 6824592
 }
 ''', 200)
-        image = client.image_inspect('foobar', raw=True)
+        image = self.client.image_inspect('foobar', raw=True)
         self.assertTrue(get_mock.called)
         self.assertIsInstance(image, dict)
         self.assertEqual(image['Size'], 6824592)
