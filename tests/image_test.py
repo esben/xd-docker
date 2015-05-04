@@ -1,5 +1,8 @@
 import unittest
 import mock
+import tempfile
+import shutil
+import os
 
 import requests_mock
 
@@ -111,3 +114,55 @@ class tests(unittest.case.TestCase):
         image = DockerImage(self.client)
         with self.assertRaises(AnonymousImage):
             image.inspect()
+
+
+class build_tests(unittest.case.TestCase):
+
+    def setUp(self):
+        self.client = DockerClient()
+        self.context = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.context)
+
+    @mock.patch('requests.post')
+    def test_build(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        image = DockerImage(self.client, context=self.context)
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        image.build()
+        self.assertEqual(image.id, 'e4d9194b48f8')
+        kwargs = post_mock.call_args[1]
+        self.assertEqual(kwargs['params'], {})
+
+    @mock.patch('requests.post')
+    def test_build_and_tag(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        image = DockerImage(self.client, context=self.context)
+        post_mock.return_value = requests_mock.Response('''\
+{"stream":"Step 0 : FROM debian:jessie\\n"}
+{"stream":" ---\\u003e 0e30e84e9513\\n"}
+{"stream":"Step 1 : RUN echo Hello world\\n"}
+{"stream":" ---\\u003e Using cache\\n"}
+{"stream":" ---\\u003e e4d9194b48f8\\n"}
+{"stream":"Successfully built e4d9194b48f8\\n"}
+''', 200)
+        image.build(name='xd-docker-unittest')
+        self.assertEqual(image.id, 'e4d9194b48f8')
+        kwargs = post_mock.call_args[1]
+        self.assertEqual(kwargs['params'], {'t': 'xd-docker-unittest'})

@@ -38,3 +38,20 @@ class DockerImage(object):
         self.created = i['Created']
         self.size = i['Size']
         self.parent = i['Parent']
+
+    def build(self, name=None, nocache=False, pull=False, rm=True,
+              memory=None, memswap=None, cpushares=None, cpusetcpus=None,
+              registry_config=None, output=('error', 'stream', 'status')):
+        self.id = self.client.image_build(
+            self.context, self.dockerfile, name, nocache=nocache, pull=pull,
+            rm=rm, memory=memory, memswap=memswap, cpushares=cpushares,
+            cpusetcpus=cpusetcpus, registry_config=registry_config,
+            output=output)
+        self.created = None
+        if name:
+            self.tags = [name]
+        else:
+            self.tags = []
+        self.virtual_size = None
+        self.parent = None
+        self.size = None
