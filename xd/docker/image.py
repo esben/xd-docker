@@ -17,7 +17,7 @@ class DockerImage(object):
                  context=None, dockerfile=None):
         """Docker image concstructor."""
         self.client = client
-        self.id_ = id_
+        self.id = id_
         self.created = created
         self.tags = tags
         self.size = size
@@ -27,14 +27,14 @@ class DockerImage(object):
         self.dockerfile = dockerfile
 
     def inspect(self):
-        if self.id_:
-            name = self.id_
+        if self.id:
+            name = self.id
         elif self.tags:
             name = self.tags[0]
         else:
             raise AnonymousImage()
         i = self.client.image_inspect(name, raw=True)
-        self.id_ = i['Id'],
+        self.id = i['Id'],
         self.created = i['Created']
         self.size = i['Size']
         self.parent = i['Parent']
