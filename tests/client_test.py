@@ -304,7 +304,8 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context)
+            self.assertEqual(self.client.image_build(self.context),
+                             'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -331,7 +332,8 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(os.path.join(self.context, 'Dockerfile'))
+            self.assertEqual(self.client.image_build(
+                os.path.join(self.context, 'Dockerfile')), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -358,7 +360,8 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context, dockerfile='DockerfileX')
+            self.assertEqual(self.client.image_build(
+                self.context, dockerfile='DockerfileX'), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -385,8 +388,9 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context,
-                                    name='xd-docker-unittest:REMOVE')
+            self.assertEqual(self.client.image_build(
+                self.context, name='xd-docker-unittest:REMOVE'),
+                             'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -414,7 +418,8 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context, nocache=True)
+            self.assertEqual(self.client.image_build(
+                self.context, nocache=True), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -444,7 +449,8 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context, rm=False)
+            self.assertEqual(self.client.image_build(
+                self.context, rm=False), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -473,7 +479,8 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context, rm='force')
+            self.assertEqual(self.client.image_build(
+                self.context, rm='force'), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -502,9 +509,9 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context,
-                                    memory=10000000, memswap=2000000,
-                                    cpushares=42, cpusetcpus='0-3')
+            self.assertEqual(self.client.image_build(
+                self.context, memory=10000000, memswap=2000000,
+                cpushares=42, cpusetcpus='0-3'), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -535,8 +542,9 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context,
-                                    name='xd-docker-unittest:REMOVE')
+            self.assertEqual(self.client.image_build(
+                self.context, name='xd-docker-unittest:REMOVE'),
+                'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -565,16 +573,17 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context, registry_config={
-                "https://index.docker.io/v1/": {
-                    "auth": "xXxXxXxXxXx=",
-                    "email": "username@example.com"
-                },
-                "https://index.example.com": {
-                    "auth": "XxXxXxXxXxX=",
-                    "email": "username@example.com"
-                }
-            })
+            self.assertEqual(self.client.image_build(
+                self.context, registry_config={
+                    "https://index.docker.io/v1/": {
+                        "auth": "xXxXxXxXxXx=",
+                        "email": "username@example.com"
+                    },
+                    "https://index.example.com": {
+                        "auth": "XxXxXxXxXxX=",
+                        "email": "username@example.com"
+                    }
+                }), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
@@ -605,7 +614,8 @@ RUN echo Hello world
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context, pull=True)
+            self.assertEqual(self.client.image_build(
+                self.context, pull=True), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
 Pulling repository debian
@@ -668,7 +678,7 @@ RUN false
 {"error":"The command [/bin/sh -c false] returned a non-zero code: 1","errorDetail":{"message":"The command [/bin/sh -c false] returned a non-zero code: 1"}}
 ''', 200)
         with contextlib.redirect_stdout(out):
-            self.client.image_build(self.context)
+            self.assertIsNone(self.client.image_build(self.context))
 
 
 @unittest.skipIf(not LOCAL_DOCKER_HOST,

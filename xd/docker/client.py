@@ -12,6 +12,7 @@ import base64
 import os
 import io
 import tarfile
+import re
 
 
 from xd.docker.container import *
@@ -144,6 +145,7 @@ class DockerClient(object):
         r = self._post('/build', headers=headers, data=tar_buf.getvalue(),
                        params=params, stream=True)
         decoder = json.JSONDecoder()
+        failed = False
         for line in r.iter_lines():
             if not line:
                 continue
@@ -155,3 +157,9 @@ class DockerClient(object):
                 for t in ('stream', 'status', 'error'):
                     if t in output and t in data:
                         print(data[t].rstrip('\n'))
+                if 'error' in data:
+                    failed = True
+        if failed:
+            return None
+        id_match = re.match('Successfully built ([0-9a-f]+)', data['stream'])
+        return id_match.group(1)
