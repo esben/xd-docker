@@ -50,7 +50,13 @@ class init_tests(unittest.case.TestCase):
             DockerClient('foobar')
 
 
-class mocked_tests(unittest.case.TestCase):
+class SimpleClientTestCase(unittest.case.TestCase):
+
+    def setUp(self):
+        self.client = DockerClient()
+
+
+class ContextClientTestCase(unittest.case.TestCase):
 
     def setUp(self):
         self.client = DockerClient()
@@ -58,6 +64,9 @@ class mocked_tests(unittest.case.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.context)
+
+
+class version_tests(SimpleClientTestCase):
 
     @mock.patch('requests.get')
     def test_version(self, get_mock):
@@ -92,6 +101,9 @@ class mocked_tests(unittest.case.TestCase):
         with self.assertRaises(HTTPError):
             self.client.version()
 
+
+class ping_tests(SimpleClientTestCase):
+
     @mock.patch('requests.get')
     def test_ping(self, get_mock):
         get_mock.return_value = requests_mock.Response('OK\n', 200)
@@ -103,6 +115,9 @@ class mocked_tests(unittest.case.TestCase):
         get_mock.return_value = requests_mock.Response('Server Error\n', 500)
         with self.assertRaises(HTTPError):
             self.client.ping()
+
+
+class containers_tests(SimpleClientTestCase):
 
     @mock.patch('requests.get')
     def test_containers(self, get_mock):
@@ -172,6 +187,9 @@ class mocked_tests(unittest.case.TestCase):
         self.assertIn('3176a2479c92', containers)
         self.assertIn('4cb07b47f9fb', containers)
 
+
+class images_tests(SimpleClientTestCase):
+
     @mock.patch('requests.get')
     def test_images(self, get_mock):
         get_mock.return_value = requests_mock.Response('''\
@@ -208,6 +226,9 @@ class mocked_tests(unittest.case.TestCase):
         self.assertIn('8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c', images)
         self.assertIn('b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc', images)
         self.assertEqual(images['8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c'].size, 131506275)
+
+
+class image_inspect_tests(SimpleClientTestCase):
 
     @mock.patch('requests.get')
     def test_image_inspect(self, get_mock):
@@ -286,6 +307,9 @@ class mocked_tests(unittest.case.TestCase):
         self.assertTrue(get_mock.called)
         self.assertIsInstance(image, dict)
         self.assertEqual(image['Size'], 6824592)
+
+
+class image_build_tests(ContextClientTestCase):
 
     @mock.patch('requests.post')
     def test_image_build(self, post_mock):
