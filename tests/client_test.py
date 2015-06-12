@@ -6,6 +6,8 @@ import tempfile
 import shutil
 import os
 import re
+import json
+import copy
 
 import requests_mock
 
@@ -70,16 +72,15 @@ class version_tests(SimpleClientTestCase):
 
     @mock.patch('requests.get')
     def test_version(self, get_mock):
-        get_mock.return_value = requests_mock.Response(
-            '''{
+        get_mock.return_value = requests_mock.Response(json.dumps({
             "Version": "1.5.0",
             "Os": "linux",
             "KernelVersion": "3.18.5-tinycore64",
             "GoVersion": "go1.4.1",
             "GitCommit": "a8a31ef",
             "Arch": "amd64",
-            "ApiVersion": "1.18"
-}\n''', 200)
+            "ApiVersion": "1.18",
+            }), 200)
         versions = self.client.version()
         self.assertTrue(get_mock.called)
         self.assertIn('Version', versions)
@@ -119,21 +120,19 @@ class ping_tests(SimpleClientTestCase):
 
 class containers_tests(SimpleClientTestCase):
 
-    @mock.patch('requests.get')
-    def test_containers(self, get_mock):
-        get_mock.return_value = requests_mock.Response(
-            '''[
-            {
+    response = [{
             "Id": "8dfafdbc3a40",
             "Image": "ubuntu:latest",
             "Command": "echo 1",
             "Created": 1367854155,
             "Status": "Up 42 seconds",
-            "Ports": [{"PrivatePort": 2222, "PublicPort": 3333, "Type": "tcp"}],
+            "Ports": [
+                {"PrivatePort": 2222,
+                 "PublicPort": 3333,
+                 "Type": "tcp"}],
             "SizeRw": 12288,
             "SizeRootFs": 0
-            },
-            {
+        }, {
             "Id": "9cd87474be90",
             "Image": "ubuntu:latest",
             "Command": "echo 222222",
@@ -142,8 +141,12 @@ class containers_tests(SimpleClientTestCase):
             "Ports": [],
             "SizeRw": 12288,
             "SizeRootFs": 0
-            }
-]\n''', 200)
+        }]
+
+    @mock.patch('requests.get')
+    def test_containers(self, get_mock):
+        get_mock.return_value = requests_mock.Response(json.dumps(
+            self.response), 200)
         containers = self.client.containers()
         self.assertTrue(get_mock.called)
         self.assertEqual(len(containers), 2)
@@ -155,69 +158,48 @@ class containers_tests(SimpleClientTestCase):
 
     @mock.patch('requests.get')
     def test_containers_all(self, get_mock):
-        get_mock.return_value = requests_mock.Response(
-            '''[
-            {
-            "Id": "3176a2479c92",
-            "Image": "ubuntu:latest",
-            "Command": "echo 3333333333333333",
-            "Created": 1367854154,
-            "Status": "Exit 0",
-            "Ports":[],
-            "SizeRw":12288,
-            "SizeRootFs":0
-            },
-            {
-            "Id": "4cb07b47f9fb",
-            "Image": "ubuntu:latest",
-            "Command": "echo 444444444444444444444444444444444",
-            "Created": 1367854152,
-            "Status": "Exit 0",
-            "Ports": [],
-            "SizeRw": 12288,
-            "SizeRootFs": 0
-            }
-]\n''', 200)
+        response = copy.deepcopy(self.response)
+        response[1]['Status'] = 'Exit 0'
+        get_mock.return_value = requests_mock.Response(json.dumps(
+            self.response), 200)
         containers = self.client.containers()
         self.assertTrue(get_mock.called)
         self.assertEqual(len(containers), 2)
         for container in containers.values():
             self.assertIsInstance(container, DockerContainer)
             self.assertIsInstance(container.image, DockerImage)
-        self.assertIn('3176a2479c92', containers)
-        self.assertIn('4cb07b47f9fb', containers)
+        self.assertIn('8dfafdbc3a40', containers)
+        self.assertIn('9cd87474be90', containers)
 
 
 class images_tests(SimpleClientTestCase):
 
+    response = [{
+        "RepoTags": [
+            "ubuntu:12.04",
+            "ubuntu:precise",
+            "ubuntu:latest"
+        ],
+        "Id": "8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c",
+        "Created": 1365714795,
+        "Size": 131506275,
+        "VirtualSize": 131506275
+    }, {
+        "RepoTags": [
+            "ubuntu:12.10",
+            "ubuntu:quantal"
+        ],
+        "ParentId": "27cf784147099545",
+        "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+        "Created": 1364102658,
+        "Size": 24653,
+        "VirtualSize": 180116135
+    }]
+
     @mock.patch('requests.get')
     def test_images(self, get_mock):
-        get_mock.return_value = requests_mock.Response('''\
-[
-  {
-    "RepoTags": [
-      "ubuntu:12.04",
-      "ubuntu:precise",
-      "ubuntu:latest"
-    ],
-    "Id": "8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c",
-    "Created": 1365714795,
-    "Size": 131506275,
-    "VirtualSize": 131506275
-  },
-  {
-    "RepoTags": [
-      "ubuntu:12.10",
-      "ubuntu:quantal"
-    ],
-    "ParentId": "27cf784147099545",
-    "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
-    "Created": 1364102658,
-    "Size": 24653,
-    "VirtualSize": 180116135
-  }
-]
-''', 200)
+        get_mock.return_value = requests_mock.Response(json.dumps(
+            self.response), 200)
         images = self.client.images()
         self.assertTrue(get_mock.called)
         self.assertEqual(len(images), 2)
@@ -230,40 +212,41 @@ class images_tests(SimpleClientTestCase):
 
 class image_inspect_tests(SimpleClientTestCase):
 
+    response = {
+        "Created": "2013-03-23T22:24:18.818426-07:00",
+        "Container": "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
+        "ContainerConfig": {
+            "Hostname": "",
+            "User": "",
+            "AttachStdin": False,
+            "AttachStdout": False,
+            "AttachStderr": False,
+            "PortSpecs": None,
+            "Tty": True,
+            "OpenStdin": True,
+            "StdinOnce": False,
+            "Env": None,
+            "Cmd": ["/bin/bash"],
+            "Dns": None,
+            "Image": "ubuntu",
+            "Labels": {
+                "com.example.vendor": "Acme",
+                "com.example.license": "GPL",
+                "com.example.version": "1.0"
+            },
+            "Volumes": None,
+            "VolumesFrom": "",
+            "WorkingDir": ""
+        },
+        "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
+        "Parent": "27cf784147099545",
+        "Size": 6824592
+    }
+
     @mock.patch('requests.get')
     def test_image_inspect(self, get_mock):
-        get_mock.return_value = requests_mock.Response('''\
-{
-  "Created": "2013-03-23T22:24:18.818426-07:00",
-  "Container": "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
-  "ContainerConfig": {
-    "Hostname": "",
-    "User": "",
-    "AttachStdin": false,
-    "AttachStdout": false,
-    "AttachStderr": false,
-    "PortSpecs": null,
-    "Tty": true,
-    "OpenStdin": true,
-    "StdinOnce": false,
-    "Env": null,
-    "Cmd": ["/bin/bash"],
-    "Dns": null,
-    "Image": "ubuntu",
-    "Labels": {
-        "com.example.vendor": "Acme",
-        "com.example.license": "GPL",
-        "com.example.version": "1.0"
-    },
-    "Volumes": null,
-    "VolumesFrom": "",
-    "WorkingDir": ""
-  },
-  "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
-  "Parent": "27cf784147099545",
-  "Size": 6824592
-}
-''', 200)
+        get_mock.return_value = requests_mock.Response(json.dumps(
+            self.response), 200)
         image = self.client.image_inspect('foobar')
         self.assertTrue(get_mock.called)
         self.assertIsInstance(image, DockerImage)
@@ -271,38 +254,8 @@ class image_inspect_tests(SimpleClientTestCase):
 
     @mock.patch('requests.get')
     def test_image_inspect_raw(self, get_mock):
-        get_mock.return_value = requests_mock.Response('''\
-{
-  "Created": "2013-03-23T22:24:18.818426-07:00",
-  "Container": "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
-  "ContainerConfig": {
-    "Hostname": "",
-    "User": "",
-    "AttachStdin": false,
-    "AttachStdout": false,
-    "AttachStderr": false,
-    "PortSpecs": null,
-    "Tty": true,
-    "OpenStdin": true,
-    "StdinOnce": false,
-    "Env": null,
-    "Cmd": ["/bin/bash"],
-    "Dns": null,
-    "Image": "ubuntu",
-    "Labels": {
-        "com.example.vendor": "Acme",
-        "com.example.license": "GPL",
-        "com.example.version": "1.0"
-    },
-    "Volumes": null,
-    "VolumesFrom": "",
-    "WorkingDir": ""
-  },
-  "Id": "b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc",
-  "Parent": "27cf784147099545",
-  "Size": 6824592
-}
-''', 200)
+        get_mock.return_value = requests_mock.Response(json.dumps(
+            self.response), 200)
         image = self.client.image_inspect('foobar', raw=True)
         self.assertTrue(get_mock.called)
         self.assertIsInstance(image, dict)
@@ -311,14 +264,16 @@ class image_inspect_tests(SimpleClientTestCase):
 
 class image_build_tests(ContextClientTestCase):
 
+    dockerfile = '''\
+FROM debian:jessie
+RUN echo Hello world
+'''
+
     @mock.patch('requests.post')
     def test_image_build(self, post_mock):
         out = io.StringIO()
         with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
-            dockerfile.write('''\
-FROM debian:jessie
-RUN echo Hello world
-''')
+            dockerfile.write(self.dockerfile)
         post_mock.return_value = requests_mock.Response('''\
 {"stream":"Step 0 : FROM debian:jessie\\n"}
 {"stream":" ---\\u003e 0e30e84e9513\\n"}
