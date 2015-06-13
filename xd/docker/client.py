@@ -1,3 +1,5 @@
+"""Module containing DockerClient and associated exceptions."""
+
 import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -60,14 +62,23 @@ class DockerClient(object):
         return r
 
     def version(self):
+        """Get Docker Remote API version."""
         r = self._get('/version')
         version = json.loads(r.text)
         return version
 
     def ping(self):
+        """Ping the docker server."""
         self._get('/_ping')
 
     def containers(self, all_=False):
+        """Get list of containers.
+
+        By default, only running containers are returned.
+
+        Keyword arguments:
+        all_ -- return all containers if True.
+        """
         params = {}
         params['all'] = all_
         r = self._get('/containers/json', params=params)
@@ -80,6 +91,10 @@ class DockerClient(object):
         return containers
 
     def images(self):
+        """Get list of images.
+
+        Returns list of DockerImage instances of all images.
+        """
         r = self._get('/images/json')
         images = {}
         for c in json.loads(r.text):
@@ -89,6 +104,18 @@ class DockerClient(object):
         return images
 
     def image_inspect(self, name, raw=False):
+        """Get image with low-level information.
+
+        Get low-level information of a named image.  Returns DockerImage
+        instance with the information.
+
+        Arguments:
+        name -- name of image.
+
+        Keyword arguments:
+        raw -- if True, return the low-level image information in raw format
+               instaed of DockerImage instance.
+        """
         r = self._get('/images/{}/json'.format(name))
         i = json.loads(r.text)
         if raw:
@@ -102,6 +129,33 @@ class DockerClient(object):
                     nocache=False, pull=False, rm=True,
                     memory=None, memswap=None, cpushares=None, cpusetcpus=None,
                     registry_config=None, output=('error', 'stream', 'status')):
+        """Build image.
+
+        Build image from a given context or stand-alone Dockerfile.
+
+        Arguments:
+        context -- path to directory containing build context, or path to a
+                   stand-alone Dockerfile.
+
+        Keyword arguments:
+        dockerfile -- path to dockerfile in build context.
+        name -- name (and optionally a tag) to be applied to the resulting
+                image.
+        nocache -- do not use the cache when building the image
+                   (default: False).
+        pull -- attempt to pull the image even if an older image exists locally.
+                (default: False)
+        rm -- False/True/'force'. Remove intermediate containers after a
+              successful build, and if 'force', always do that.
+              (default: True).
+        memory -- set memory limit for build.
+        memswap -- total memory (memory + swap), -1 to disable swap.
+        cpushares -- CPU shares (relative weight).
+        cpusetcpus -- CPUs in which to allow execution.
+        registry_config -- dict containing ConfigFile object specification.
+        output -- tuple/list of with type of output information to allow
+                  (Default: ('stream', 'status', 'error')).
+        """
         headers = { 'content-type': 'application/tar' }
         if registry_config:
             if not isinstance(registry_config, dict):
