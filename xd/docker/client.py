@@ -113,13 +113,11 @@ class DockerClient(object):
             raise ValueError('context argument does not exist: %s'%(context))
         tar_buf = io.BytesIO()
         tar = tarfile.TarFile(fileobj=tar_buf, mode='w', dereference=True)
-        tar2 = tarfile.TarFile('/tmp/foo.tar', mode='w', dereference=True)
         if os.path.isfile(context):
             tar.add(context, 'Dockerfile')
         else:
             for f in os.listdir(context):
                 tar.add(os.path.join(context, f), f)
-                tar2.add(os.path.join(context, f), f)
         tar.close()
         params = {}
         if dockerfile:
