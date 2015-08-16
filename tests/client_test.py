@@ -682,12 +682,9 @@ RUN echo Hello world
             self.client.image_build(self.context, pull=True, nocache=True)
         self.assertRegex(out.getvalue(), re.compile('''\
 Step 0 : FROM debian:jessie
-Pulling repository debian
-Pulling image \(jessie\) from debian
-Pulling image \(jessie\) from debian, endpoint: .*
-Pulling dependent layers
-(Download complete
-)*Status: Image is up to date for debian:jessie
+Pulling .*debian
+.*
+Status: Image is up to date for debian:jessie
  ---> [0-9a-f]+
 Step 1 : RUN echo Hello world
  ---> Running in [0-9a-f]+
@@ -695,7 +692,7 @@ Hello world
  ---> [0-9a-f]+
 Removing intermediate container [0-9a-f]+
 Successfully built [0-9a-f]+
-''', re.MULTILINE))
+''', re.MULTILINE | re.DOTALL))
 
     def test_image_build_2_nocache(self):
         out = io.StringIO()
@@ -845,7 +842,7 @@ Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
 Step 1 : RUN false
  ---> Running in [0-9a-f]+
-The command \[/bin/sh -c false\] returned a non-zero code: 1
+The command ./bin/sh -c false. returned a non-zero code: 1
 ''')
 
     def test_image_build_2_error_quiet(self):
@@ -859,7 +856,7 @@ RUN false
             self.client.image_build(self.context, nocache=True,
                                     output=('error'))
         self.assertRegex(out.getvalue(), '''\
-The command \[/bin/sh -c false\] returned a non-zero code: 1
+The command ./bin/sh -c false. returned a non-zero code: 1
 ''')
         self.assertNotRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
