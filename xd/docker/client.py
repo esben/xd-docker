@@ -45,9 +45,10 @@ class DockerClient(object):
             raise ValueError('Invalid host value: {}'.format(host))
         self.base_url = host
 
-    def _get(self, url, params=None, stream=False, ok_status_codes=[200]):
+    def _get(self, url, params=None, headers=None,
+             stream=False, ok_status_codes=[200]):
         url = self.base_url + url
-        r = requests.get(url, params=params, stream=stream)
+        r = requests.get(url, params=params, headers=headers, stream=stream)
         if r.status_code not in ok_status_codes:
             raise HTTPError(url, r.status_code)
         return r
