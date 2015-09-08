@@ -216,3 +216,40 @@ class DockerClient(object):
             return None
         id_match = re.match('Successfully built ([0-9a-f]+)', data['stream'])
         return id_match.group(1)
+
+    def image_pull(self, name, registry_auth=None,
+                   output=('error', 'stream', 'status')):
+        """Pull image.
+
+        Create an image by pulling it from a registry.
+
+        Arguments:
+        name -- name of the image to pull
+        output -- tuple/list of with type of output information to allow
+                  (Default: ('stream', 'status', 'error')).
+        """
+        params = {'fromImage': name}
+        headers = { 'content-type': 'application/json' }
+        if registry_auth:
+            if not isinstance(registry_auth, dict):
+                raise TypeError('registry_auth must be dict: %s'%(
+                    type(registry_auth)))
+            registry_auth = json.dumps(registry_auth).encode('utf-8')
+            headers['X-Registry-Auth'] = base64.b64encode(registry_auth)
+        r = self._post('/images/create', headers=headers, params=params,
+                       stream=True)
+        decoder = json.JSONDecoder()
+        failed = False
+        for line in r.iter_lines():
+            line = line.decode('utf-8')
+            index = 0
+            while index < len(line):
+                data, extra_data_index = decoder.raw_decode(line[index:])
+                index += extra_data_index
+                for t in ('stream', 'status', 'error'):
+                    if t in output and t in data:
+                        print(data[t].rstrip('\n'))
+                if 'error' in data:
+                    failed = True
+        if failed:
+            return None
