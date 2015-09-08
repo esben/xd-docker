@@ -660,6 +660,58 @@ RUN false
             self.assertIsNone(self.client.image_build(self.context))
 
 
+class image_pull_tests(ContextClientTestCase):
+
+    ok_response = '''\
+{"status": "Pulling from library/busybox\\n"}
+{"status": "Already exists\\n"}
+{"status": "Already exists\\n"}
+{"status": "Already exists\\n"}
+{"status": "Already exists\\n"}
+{"status": "Digest: sha256:38a203e1986cf79639cfb9b2e1d6e773de84002feea2d4eb006b52004ee8502d\\n"}
+{"status": "Status: Image is up to date for busybox:latest\\n"}
+'''
+
+    not_found_response = '{"error": "Error: image library/nosuchthingshouldexist: not found"}'
+
+    @mock.patch('requests.post')
+    def test_image_pull_1_ok(self, post_mock):
+        out = io.StringIO()
+        post_mock.return_value = requests_mock.Response(self.ok_response, 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_pull('busybox')
+        self.assertRegex(out.getvalue(),
+                         'Status: (Image is up to date|Downloaded newer image) '
+                         'for busybox:latest')
+
+    @mock.patch('requests.post')
+    def test_image_pull_2_not_found(self, post_mock):
+        out = io.StringIO()
+        post_mock.return_value = requests_mock.Response(self.not_found_response, 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_pull('nosuchthingshouldexist', output=('error'))
+        self.assertRegex(out.getvalue(), 'nosuchthingshouldexist\: not found')
+
+    @mock.patch('requests.post')
+    def test_image_pull_3_authconfig(self, post_mock):
+        out = io.StringIO()
+        post_mock.return_value = requests_mock.Response(self.ok_response, 200)
+        with contextlib.redirect_stdout(out):
+            self.client.image_pull('busybox:latest', registry_auth={
+                'username': 'user',
+                'password': 'secret',
+                'email': 'user@domain.com',
+                'serveraddress': 'domain.com'})
+        self.assertRegex(out.getvalue(),
+                         'Status: (Image is up to date|Downloaded newer image) '
+                         'for busybox:latest')
+
+    @mock.patch('requests.post')
+    def test_image_pull_4_invalid_authconfig(self, post_mock):
+        with self.assertRaises(TypeError):
+            self.client.image_pull('busybox:latest', registry_auth=42)
+
+
 @unittest.skipIf(not LOCAL_DOCKER_HOST,
                  'Live docker tests requires local docker host')
 class live_tests(unittest.case.TestCase):
@@ -684,7 +736,6 @@ RUN echo Hello world
 Step 0 : FROM debian:jessie
 Pulling .*debian
 .*
-Status: Image is up to date for debian:jessie
  ---> [0-9a-f]+
 Step 1 : RUN echo Hello world
  ---> Running in [0-9a-f]+
@@ -862,6 +913,23 @@ The command ./bin/sh -c false. returned a non-zero code: 1
 Step 0 : FROM debian:jessie
 ''')
 
+    def test_image_pull_1_ok(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.client.image_pull('busybox:latest')
+        self.assertRegex(out.getvalue(),
+                         'Status: (Image is up to date|Downloaded newer image) '
+                         'for busybox:latest')
+
+    def test_image_pull_2_not_found(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.client.image_pull('nosuchthingshouldexist', output=('error'))
+        self.assertRegex(out.getvalue(), 'nosuchthingshouldexist\: not found')
+
+    def test_image_pull_4_invalid_authconfig(self):
+        with self.assertRaises(TypeError):
+            self.client.image_pull('busybox:latest', registry_auth=42)
 
 # nocache
 # pull
