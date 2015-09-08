@@ -684,7 +684,6 @@ RUN echo Hello world
 Step 0 : FROM debian:jessie
 Pulling .*debian
 .*
-Status: Image is up to date for debian:jessie
  ---> [0-9a-f]+
 Step 1 : RUN echo Hello world
  ---> Running in [0-9a-f]+
