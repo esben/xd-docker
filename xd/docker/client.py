@@ -62,6 +62,13 @@ class DockerClient(object):
             raise HTTPError(url, r.status_code)
         return r
 
+    def _delete(self, url, params=None, stream=False, ok_status_codes=[200]):
+        url = self.base_url + url
+        r = requests.delete(url, params=params, stream=stream)
+        if r.status_code not in ok_status_codes:
+            raise HTTPError(url, r.status_code)
+        return r
+
     def version(self):
         """Get Docker Remote API version."""
         r = self._get('/version')
@@ -253,3 +260,14 @@ class DockerClient(object):
                     failed = True
         if failed:
             return None
+
+    def image_remove(self, name):
+        """Remove an image.
+
+        Remove the image name from the filesystem.
+
+        Arguments:
+        name -- name of the image to remove
+        """
+        r = self._delete('/images/{}'.format(name))
+        return json.loads(r.text)

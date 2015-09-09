@@ -712,6 +712,24 @@ class image_pull_tests(ContextClientTestCase):
             self.client.image_pull('busybox:latest', registry_auth=42)
 
 
+class image_remove_tests(ContextClientTestCase):
+
+    @mock.patch('requests.delete')
+    def test_image_remove_1(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response(json.dumps([
+            {"Untagged": "3e2f21a89f"},
+            {"Deleted": "3e2f21a89f"},
+            {"Deleted": "53b4f83ac9"}
+        ]), 200)
+        self.assertIsNotNone(self.client.image_remove('busybox:latest'))
+
+    @mock.patch('requests.delete')
+    def test_image_remove_2_not_found(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response('', 400)
+        with self.assertRaises(HTTPError):
+            self.client.image_remove('busybox:latest')
+
+
 @unittest.skipIf(not LOCAL_DOCKER_HOST,
                  'Live docker tests requires local docker host')
 class live_tests(unittest.case.TestCase):
@@ -930,6 +948,18 @@ Step 0 : FROM debian:jessie
     def test_image_pull_4_invalid_authconfig(self):
         with self.assertRaises(TypeError):
             self.client.image_pull('busybox:latest', registry_auth=42)
+
+    def test_image_remove_1(self):
+        self.client.image_pull('busybox:latest')
+        self.assertIsNotNone(self.client.image_remove('busybox:latest'))
+        with self.assertRaises(HTTPError):
+            self.client.image_inspect('busybox:latest', raw=True)
+
+    def test_image_remove_2_not_found(self):
+        self.client.image_pull('busybox:latest')
+        self.assertIsNotNone(self.client.image_remove('busybox:latest'))
+        with self.assertRaises(HTTPError):
+            self.client.image_remove('busybox:latest')
 
 # nocache
 # pull
