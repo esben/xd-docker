@@ -45,16 +45,16 @@ class DockerClient(object):
             raise ValueError('Invalid host value: {}'.format(host))
         self.base_url = host
 
-    def _get(self, url, params=None, headers=None,
-             stream=False, ok_status_codes=[200]):
+    def _get(self, url, params=None, headers=None, stream=False,
+             ok_status_codes=[200, 201]):
         url = self.base_url + url
         r = requests.get(url, params=params, headers=headers, stream=stream)
         if r.status_code not in ok_status_codes:
             raise HTTPError(url, r.status_code)
         return r
 
-    def _post(self, url, params=None, headers=None, data=None,
-              stream=False, ok_status_codes=[200]):
+    def _post(self, url, params=None, headers=None, data=None, stream=False,
+              ok_status_codes=[200, 201]):
         url = self.base_url + url
         r = requests.post(url, params=params, headers=headers, data=data,
                           stream=stream)
@@ -62,7 +62,8 @@ class DockerClient(object):
             raise HTTPError(url, r.status_code)
         return r
 
-    def _delete(self, url, params=None, stream=False, ok_status_codes=[200]):
+    def _delete(self, url, params=None, stream=False,
+                ok_status_codes=[200, 201]):
         url = self.base_url + url
         r = requests.delete(url, params=params, stream=stream)
         if r.status_code not in ok_status_codes:
@@ -271,3 +272,20 @@ class DockerClient(object):
         """
         r = self._delete('/images/{}'.format(name))
         return json.loads(r.text)
+
+    def image_tag(self, image, tag, force=False):
+        """Tag an image.
+
+        Add tag to an existing image.
+
+        Arguments:
+        image -- image to add tag to
+        tag -- name of tag (REPOSITORY or REPOSITORY:TAG)
+        """
+        params = {}
+        if ':' in tag:
+            params['repo'], params['tag'] = tag.split(':', 1)
+        else:
+            params['repo'] = tag
+        params['force'] = 1 if force else 0
+        self._post('/images/{}/tag'.format(image), params=params)

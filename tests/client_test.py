@@ -730,6 +730,30 @@ class image_remove_tests(ContextClientTestCase):
             self.client.image_remove('busybox:latest')
 
 
+class image_tag_tests(ContextClientTestCase):
+
+    @mock.patch('requests.post')
+    def test_image_tag_1_repo(self, post_mock):
+        post_mock.return_value = requests_mock.Response('', 201)
+        self.client.image_tag('busybox:latest', 'myrepo')
+
+    @mock.patch('requests.post')
+    def test_image_tag_2_repo_and_tag(self, post_mock):
+        post_mock.return_value = requests_mock.Response('', 201)
+        self.client.image_tag('busybox:latest', 'myrepo:tag')
+
+    @mock.patch('requests.post')
+    def test_image_tag_3_force(self, post_mock):
+        post_mock.return_value = requests_mock.Response('', 201)
+        self.client.image_tag('busybox:latest', 'myrepo', force=True)
+
+    @mock.patch('requests.post')
+    def test_image_tag_4_fail(self, post_mock):
+        post_mock.return_value = requests_mock.Response('', 409)
+        with self.assertRaises(HTTPError):
+            self.client.image_tag('busybox:latest', 'myrepo')
+
+
 @unittest.skipIf(not LOCAL_DOCKER_HOST,
                  'Live docker tests requires local docker host')
 class live_tests(unittest.case.TestCase):
@@ -960,6 +984,29 @@ Step 0 : FROM debian:jessie
         self.assertIsNotNone(self.client.image_remove('busybox:latest'))
         with self.assertRaises(HTTPError):
             self.client.image_remove('busybox:latest')
+
+    def test_image_tag_1_force(self):
+        self.client.image_pull('busybox:latest')
+        self.client.image_tag('busybox:latest', 'test_image_tag', force=True)
+
+    def test_image_tag_2_noforce(self):
+        self.client.image_pull('busybox:latest')
+        try:
+            self.client.image_remove('test_image_tag')
+        except HTTPError:
+            pass
+        self.client.image_tag('busybox:latest', 'test_image_tag')
+
+    def test_image_tag_3_noforce_fail(self):
+        self.client.image_pull('busybox:latest')
+        self.client.image_tag('busybox:latest', 'test_image_tag', force=True)
+        with self.assertRaises(HTTPError):
+            self.client.image_tag('busybox:latest', 'test_image_tag')
+
+    def test_image_tag_4_repo_and_tag(self):
+        self.client.image_pull('busybox:latest')
+        self.client.image_tag('busybox:latest', 'test_image_tag:tag',
+                              force=True)
 
 # nocache
 # pull
