@@ -272,3 +272,20 @@ class DockerClient(object):
         """
         r = self._delete('/images/{}'.format(name))
         return json.loads(r.text)
+
+    def image_tag(self, image, tag, force=False):
+        """Tag an image.
+
+        Add tag to an existing image.
+
+        Arguments:
+        image -- image to add tag to
+        tag -- name of tag (REPOSITORY or REPOSITORY:TAG)
+        """
+        params = {}
+        if ':' in tag:
+            params['repo'], params['tag'] = tag.split(':', 1)
+        else:
+            params['repo'] = tag
+        params['force'] = 1 if force else 0
+        self._post('/images/{}/tag'.format(image), params=params)
