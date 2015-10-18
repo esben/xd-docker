@@ -21,13 +21,21 @@ from xd.docker.container import *
 from xd.docker.image import *
 
 
-__all__ = ['DockerClient', 'HTTPError']
+__all__ = ['DockerClient', 'HTTPError', 'ClientError', 'ServerError']
 
 
 class HTTPError(Exception):
     def __init__(self, url, code):
         self.url = url
         self.code = code
+
+class ClientError(HTTPError):
+    def __init__(self, url, code):
+        super(ClientError, self).__init__(url, code)
+
+class ServerError(HTTPError):
+    def __init__(self, url, code):
+        super(ServerError, self).__init__(url, code)
 
 
 class DockerClient(object):
@@ -45,29 +53,33 @@ class DockerClient(object):
             raise ValueError('Invalid host value: {}'.format(host))
         self.base_url = host
 
-    def _get(self, url, params=None, headers=None, stream=False,
-             ok_status_codes=[200, 201]):
+    def _check_http_status_code(self, url, status_code):
+        if status_code >= 200 and status_code < 300:
+            return
+        elif status_code >= 400 and status_code <= 499:
+            raise ClientError(url, status_code)
+        elif status_code >= 500 and status_code <= 599:
+            raise ServerError(url, status_code)
+        else:
+            raise HTTPError(url, status_code)
+
+    def _get(self, url, params=None, headers=None, stream=False):
         url = self.base_url + url
         r = requests.get(url, params=params, headers=headers, stream=stream)
-        if r.status_code not in ok_status_codes:
-            raise HTTPError(url, r.status_code)
+        self._check_http_status_code(url, r.status_code)
         return r
 
-    def _post(self, url, params=None, headers=None, data=None, stream=False,
-              ok_status_codes=[200, 201]):
+    def _post(self, url, params=None, headers=None, data=None, stream=False):
         url = self.base_url + url
         r = requests.post(url, params=params, headers=headers, data=data,
                           stream=stream)
-        if r.status_code not in ok_status_codes:
-            raise HTTPError(url, r.status_code)
+        self._check_http_status_code(url, r.status_code)
         return r
 
-    def _delete(self, url, params=None, stream=False,
-                ok_status_codes=[200, 201]):
+    def _delete(self, url, params=None, stream=False):
         url = self.base_url + url
         r = requests.delete(url, params=params, stream=stream)
-        if r.status_code not in ok_status_codes:
-            raise HTTPError(url, r.status_code)
+        self._check_http_status_code(url, r.status_code)
         return r
 
     def version(self):

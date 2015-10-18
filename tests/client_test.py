@@ -96,9 +96,23 @@ class version_tests(SimpleClientTestCase):
             self.assertEqual(versions['Arch'], 'amd64')
 
     @mock.patch('requests.get')
-    def test_version_httperror(self, get_mock):
+    def test_version_httperror_404(self, get_mock):
         get_mock.return_value = requests_mock.Response(
             '404 page not found\n', 404)
+        with self.assertRaises(ClientError):
+            self.client.version()
+
+    @mock.patch('requests.get')
+    def test_version_httperror_500(self, get_mock):
+        get_mock.return_value = requests_mock.Response(
+            '500 internal server error\n', 500)
+        with self.assertRaises(ServerError):
+            self.client.version()
+
+    @mock.patch('requests.get')
+    def test_version_httperror_unknown(self, get_mock):
+        get_mock.return_value = requests_mock.Response(
+            '999 foobar\n', 999)
         with self.assertRaises(HTTPError):
             self.client.version()
 
