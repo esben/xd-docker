@@ -155,10 +155,7 @@ class DockerClient(object):
         r = self._get('/containers/json', params=params)
         containers = {}
         for c in json.loads(r.text):
-            containers[c['Id']] = DockerContainer(
-                self, id_=c['Id'], names=c.get('Names', []),
-                command=c['Command'], ports=c['Ports'],
-                image=c['Image'], created=c['Created'])
+            containers[c['Id']] = DockerContainer(self, list_response=c)
         return containers
 
     def images(self):
