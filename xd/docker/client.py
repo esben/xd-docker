@@ -38,6 +38,40 @@ class ServerError(HTTPError):
         super(ServerError, self).__init__(url, code)
 
 
+def parse_kwargs(allowed_kwargs, kwargs):
+    params = {}
+    for arg_name, param_name, validator in allowed_kwargs:
+        try:
+            arg = kwargs.pop(arg_name)
+        except KeyError:
+            continue
+        if arg is None:
+            continue
+        if isinstance(validator, type):
+            if not isinstance(arg, validator):
+                raise TypeError("invalid '%s' argument: %s" % (
+                    arg_name, repr(arg)))
+        else:
+            assert callable(validator)
+            try:
+                if not validator(arg):
+                    raise ValueError("invalid '%s' argument: %s" % (
+                        arg_name, repr(arg)))
+            except TypeError:
+                raise TypeError("invalid '%s' argument: %s" % (
+                    arg_name, repr(arg)))
+        param_name = param_name.split('.')
+        p = params
+        while len(param_name) > 1:
+            pn = param_name.pop(0)
+            if pn not in p:
+                p[pn] = {}
+            p = p[pn]
+        pn = param_name.pop()
+        p[pn] = arg
+    return params
+
+
 class DockerClient(object):
     """Docker client."""
 
