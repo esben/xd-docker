@@ -73,26 +73,28 @@ class DockerContainer(object):
             except KeyError:
                 continue
             setattr(self, name.lower(), value)
-        self._parse_config(response.get('Config'))
-        self._parse_host_config(response.get('HostConfig'))
-        self._parse_network_settings(response.get('NetworkSettings'))
+        self._parse_more_attrs(self.CONFIG_ATTRS,
+                               response.get('Config'))
+        self._parse_more_attrs(self.HOST_CONFIG_ATTRS,
+                               response.get('HostConfig'))
+        self._parse_more_attrs(self.NETWORK_SETTINGS_ATTRS,
+                               response.get('NetworkSettings'))
         if 'State' in response:
             self.state = DockerContainerState(response.get('State'))
 
+    def _parse_more_attrs(self, attrs, response):
+        for name in attrs:
+            try:
+                value = response[name]
+            except KeyError:
+                continue
+            setattr(self, name.lower(), value)
 
     CONFIG_ATTRS = (
         'AttachStderr', 'AttachStdin', 'AttachStdout', 'Cmd', 'Domainname',
         'Entrypoint', 'Env', 'ExposedPorts', 'Hostname', 'Image', 'Labels',
         'MacAddress', 'NetworkDisabled', 'OnBuild', 'OpenStdin', 'StdinOnce',
         'Tty', 'User', 'Volumes', 'WorkingDir')
-
-    def _parse_config(self, response):
-        for name in self.CONFIG_ATTRS:
-            try:
-                value = response[name]
-            except KeyError:
-                continue
-            setattr(self, name.lower(), value)
 
     HOST_CONFIG_ATTRS = (
         'Binds', 'BlkioWeight', 'CapAdd', 'CapDrop', 'ContainerIDFile',
@@ -102,22 +104,6 @@ class DockerContainer(object):
         'Privileged', 'ReadonlyRootfs', 'PublishAllPorts', 'RestartPolicy',
         'LogConfig', 'SecurityOpt', 'VolumesFrom', 'Ulimits')
 
-    def _parse_host_config(self, response):
-        for name in self.HOST_CONFIG_ATTRS:
-            try:
-                value = response[name]
-            except KeyError:
-                continue
-            setattr(self, name.lower(), value)
-
     NETWORK_SETTINGS_ATTRS = (
         "Bridge", "Gateway", "IPAddress", "IPPrefixLen", "MacAddress",
         "PortMapping", "Ports")
-
-    def _parse_network_settings(self, response):
-        for name in self.NETWORK_SETTINGS_ATTRS:
-            try:
-                value = response[name]
-            except KeyError:
-                continue
-            setattr(self, name.lower(), value)
