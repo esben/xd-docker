@@ -29,13 +29,65 @@ class HTTPError(Exception):
         self.url = url
         self.code = code
 
+
 class ClientError(HTTPError):
     def __init__(self, url, code):
         super(ClientError, self).__init__(url, code)
 
+
 class ServerError(HTTPError):
     def __init__(self, url, code):
         super(ServerError, self).__init__(url, code)
+
+
+def parse_kwargs(allowed_kwargs, kwargs):
+    params = {}
+    for arg_name, param_name, validator in allowed_kwargs:
+        try:
+            arg = kwargs.pop(arg_name)
+        except KeyError:
+            continue
+        if arg is None:
+            continue
+        if isinstance(validator, type):
+            if not isinstance(arg, validator):
+                raise TypeError("invalid '%s' argument: %s" % (
+                    arg_name, repr(arg)))
+        else:
+            assert callable(validator)
+            try:
+                if not validator(arg):
+                    raise ValueError("invalid '%s' argument: %s" % (
+                        arg_name, repr(arg)))
+            except TypeError:
+                raise TypeError("invalid '%s' argument: %s" % (
+                    arg_name, repr(arg)))
+        param_name = param_name.split('.')
+        p = params
+        while len(param_name) > 1:
+            pn = param_name.pop(0)
+            if pn not in p:
+                p[pn] = {}
+            p = p[pn]
+        pn = param_name.pop()
+        p[pn] = arg
+    return params
+
+
+def is_image_name(name):
+    if not isinstance(name, str):
+        raise TypeError()
+    if name.count(':') > 1:
+        return False
+    return True
+
+
+def is_bool_or_force(arg):
+    if isinstance(arg, bool):
+        return True
+    if arg == 'force':
+        return True
+    return False
 
 
 class DockerClient(object):
@@ -105,10 +157,7 @@ class DockerClient(object):
         r = self._get('/containers/json', params=params)
         containers = {}
         for c in json.loads(r.text):
-            containers[c['Id']] = DockerContainer(
-                self, id_=c['Id'], names=c.get('Names', []),
-                command=c['Command'], ports=c['Ports'],
-                image=c['Image'], created=c['Created'])
+            containers[c['Id']] = DockerContainer(self, list_response=c)
         return containers
 
     def images(self):
@@ -146,10 +195,8 @@ class DockerClient(object):
                 self, id_=i['Id'], created=i['Created'], size=i['Size'],
                 parent=i['Parent'])
 
-    def image_build(self, context, dockerfile=None, name=None,
-                    nocache=False, pull=False, rm=True,
-                    memory=None, memswap=None, cpushares=None, cpusetcpus=None,
-                    registry_config=None, output=('error', 'stream', 'status')):
+    def image_build(self, context, registry_config=None,
+                    output=('error', 'stream', 'status'), **kwargs):
         """Build image.
 
         Build image from a given context or stand-alone Dockerfile.
@@ -164,8 +211,8 @@ class DockerClient(object):
                 image.
         nocache -- do not use the cache when building the image
                    (default: False).
-        pull -- attempt to pull the image even if an older image exists locally.
-                (default: False)
+        pull -- attempt to pull the image even if an older image exists locally
+                (default: False).
         rm -- False/True/'force'. Remove intermediate containers after a
               successful build, and if 'force', always do that.
               (default: True).
@@ -177,15 +224,15 @@ class DockerClient(object):
         output -- tuple/list of with type of output information to allow
                   (Default: ('stream', 'status', 'error')).
         """
-        headers = { 'content-type': 'application/tar' }
+        headers = {'content-type': 'application/tar'}
         if registry_config:
             if not isinstance(registry_config, dict):
-                raise TypeError('registry_config must be dict: %s'%(
+                raise TypeError('registry_config must be dict: %s' % (
                     type(registry_config)))
             registry_config = json.dumps(registry_config).encode('utf-8')
             headers['X-Registry-Config'] = base64.b64encode(registry_config)
         if not os.path.exists(context):
-            raise ValueError('context argument does not exist: %s'%(context))
+            raise ValueError('context argument does not exist: %s' % (context))
         tar_buf = io.BytesIO()
         tar = tarfile.TarFile(fileobj=tar_buf, mode='w', dereference=True)
         if os.path.isfile(context):
@@ -194,27 +241,20 @@ class DockerClient(object):
             for f in os.listdir(context):
                 tar.add(os.path.join(context, f), f)
         tar.close()
-        params = {}
-        if dockerfile:
-            params['dockerfile'] = dockerfile
-        if name:
-            params['t'] = name
-        if nocache:
-            params['nocache'] = 1
-        if pull:
-            params['pull'] = 1
-        if not rm:
-            params['rm'] = 0
-        if rm == 'force':
-            params['forcerm'] = 1
-        if memory is not None:
-            params['memory'] = memory
-        if memswap is not None:
-            params['memswap'] = memswap
-        if cpushares is not None:
-            params['cpushares'] = cpushares
-        if cpusetcpus is not None:
-            params['cpusetcpus'] = cpusetcpus
+        params = parse_kwargs((
+            ('dockerfile', 'dockerfile', str),
+            ('name', 't', is_image_name),
+            ('nocache', 'nocache', bool),
+            ('pull', 'pull', bool),
+            ('rm', 'rm', is_bool_or_force),
+            ('memory', 'memory', int),
+            ('memswap', 'memswap', int),
+            ('cpushares', 'cpushares', int),
+            ('cpusetcpus', 'cpusetcpus', str),
+            ), kwargs)
+        if 'rm' in params and params['rm'] == 'force':
+            del params['rm']
+            params['forcerm'] = True
         r = self._post('/build', headers=headers, data=tar_buf.getvalue(),
                        params=params, stream=True)
         decoder = json.JSONDecoder()
@@ -249,10 +289,10 @@ class DockerClient(object):
                   (Default: ('stream', 'status', 'error')).
         """
         params = {'fromImage': name}
-        headers = { 'content-type': 'application/json' }
+        headers = {'content-type': 'application/json'}
         if registry_auth:
             if not isinstance(registry_auth, dict):
-                raise TypeError('registry_auth must be dict: %s'%(
+                raise TypeError('registry_auth must be dict: %s' % (
                     type(registry_auth)))
             registry_auth = json.dumps(registry_auth).encode('utf-8')
             headers['X-Registry-Auth'] = base64.b64encode(registry_auth)

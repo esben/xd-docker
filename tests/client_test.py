@@ -176,7 +176,7 @@ class containers_tests(SimpleClientTestCase):
         response[1]['Status'] = 'Exit 0'
         get_mock.return_value = requests_mock.Response(json.dumps(
             self.response), 200)
-        containers = self.client.containers()
+        containers = self.client.containers(all_=True)
         self.assertTrue(get_mock.called)
         self.assertEqual(len(containers), 2)
         for container in containers.values():
@@ -640,6 +640,26 @@ RUN echo Hello world
             self.client.image_build(self.context)
 
     @mock.patch('requests.post')
+    def test_image_build_invalid_name_1(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with self.assertRaises(TypeError):
+            self.client.image_build(self.context, name=42)
+
+    @mock.patch('requests.post')
+    def test_image_build_invalid_name_2(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with self.assertRaises(ValueError):
+            self.client.image_build(self.context, name='foo:bar:hello')
+
+    @mock.patch('requests.post')
     def test_image_build_invalid_registry_config(self, post_mock):
         with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
             dockerfile.write('''\
@@ -648,6 +668,26 @@ RUN echo Hello world
 ''')
         with self.assertRaises(TypeError):
             self.client.image_build(self.context, registry_config=42)
+
+    @mock.patch('requests.post')
+    def test_image_build_invalid_rm(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with self.assertRaises(ValueError):
+            self.client.image_build(self.context, rm=42)
+
+    @mock.patch('requests.post')
+    def test_image_build_invalid_pull(self, post_mock):
+        with open(os.path.join(self.context, 'Dockerfile'), 'w') as dockerfile:
+            dockerfile.write('''\
+FROM debian:jessie
+RUN echo Hello world
+''')
+        with self.assertRaises(TypeError):
+            self.client.image_build(self.context, pull=42)
 
     @mock.patch('requests.post')
     def test_image_build_context_does_not_exist(self, post_mock):
