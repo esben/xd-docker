@@ -176,7 +176,7 @@ class containers_tests(SimpleClientTestCase):
         response[1]['Status'] = 'Exit 0'
         get_mock.return_value = requests_mock.Response(json.dumps(
             self.response), 200)
-        containers = self.client.containers()
+        containers = self.client.containers(all_=True)
         self.assertTrue(get_mock.called)
         self.assertEqual(len(containers), 2)
         for container in containers.values():
