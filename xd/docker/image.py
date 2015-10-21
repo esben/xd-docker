@@ -9,6 +9,7 @@ __all__ = ['DockerImage', 'AnonymousImage']
 class AnonymousImage(Exception):
     pass
 
+
 class DockerImage(object):
     """Docker image."""
 

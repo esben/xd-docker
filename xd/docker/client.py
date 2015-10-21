@@ -29,9 +29,11 @@ class HTTPError(Exception):
         self.url = url
         self.code = code
 
+
 class ClientError(HTTPError):
     def __init__(self, url, code):
         super(ClientError, self).__init__(url, code)
+
 
 class ServerError(HTTPError):
     def __init__(self, url, code):
@@ -209,8 +211,8 @@ class DockerClient(object):
                 image.
         nocache -- do not use the cache when building the image
                    (default: False).
-        pull -- attempt to pull the image even if an older image exists locally.
-                (default: False)
+        pull -- attempt to pull the image even if an older image exists locally
+                (default: False).
         rm -- False/True/'force'. Remove intermediate containers after a
               successful build, and if 'force', always do that.
               (default: True).
@@ -287,10 +289,10 @@ class DockerClient(object):
                   (Default: ('stream', 'status', 'error')).
         """
         params = {'fromImage': name}
-        headers = { 'content-type': 'application/json' }
+        headers = {'content-type': 'application/json'}
         if registry_auth:
             if not isinstance(registry_auth, dict):
-                raise TypeError('registry_auth must be dict: %s'%(
+                raise TypeError('registry_auth must be dict: %s' % (
                     type(registry_auth)))
             registry_auth = json.dumps(registry_auth).encode('utf-8')
             headers['X-Registry-Auth'] = base64.b64encode(registry_auth)
