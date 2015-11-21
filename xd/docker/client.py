@@ -19,6 +19,7 @@ import re
 
 from xd.docker.container import *
 from xd.docker.image import *
+from xd.docker.parameters import *
 
 
 __all__ = ['DockerClient', 'HTTPError', 'ClientError', 'ServerError']
@@ -341,3 +342,102 @@ class DockerClient(object):
             params['repo'] = tag
         params['force'] = 1 if force else 0
         self._post('/images/{}/tag'.format(image), params=params)
+
+    def container_create(
+            self, image, name=None, hostname=None, domainname=None, user=None,
+            memory=None, swap=None, cpu_shares=None, cpu_period=None,
+            cpuset_cpus=None, cpuset_mems=None, blkio_weight=None,
+            swappiness=None, oom_kill=True,
+            attach_stdin=None, attach_stdout=None, attach_stderr=None,
+            tty=None, open_stdin=None, stdin_once=None,
+            env=None, labels=None, command=None, entrypoint=None,
+            mounts=None, working_dir=None, network=None, exposed_ports=None,
+            host_config=None):
+        """Create a new container.
+
+        Create a new container based on existing image.
+
+        Arguments:
+        image -- image create container from
+        name -- name to assign to container
+        hostname -- hostname to use for the container
+        domainname -- domain name to use for the container
+        user -- user inside the container (user name)
+        memory -- memory limit (bytes)
+        swap -- swap limit (bytes)
+        cpu_shares -- cpu shares relative to other containers (integer value)
+        cpu_period -- length of a cpu period (microseconds)
+        cpuset_cpus -- cgroups cpuset.cpu to use
+        cpuset_mems -- cgroups cpuset.mem to use
+        blkio_weight -- relative block io weight (10 ... 1000)
+        swappiness -- memory swappiness behavior (10 ... 1000)
+        oom_kill -- whether to enable OOM killer for container or not
+        attach_stdin -- attach to stdin (boolean)
+        attach_stdout -- attach to stdout (boolean)
+        attach_stderr -- attach to stderr (boolean)
+        tty -- attach standard streams to a tty (boolean)
+        open_stdin -- open stdin (boolean)
+        stdin_once -- close stdin after the client disconnects (boolean)
+        env -- environment variables (dict)
+        labels -- labels to set on container (dict)
+        command -- command to run (string or list of strings)
+        entrypoint -- container entrypoint (string or list of strings)
+        mounts -- mount points in the container (list of strings)
+        working_dir -- working directory for command to run in (string)
+        network -- whether to enable networking in the container (boolean)
+        exposed_ports -- exposed ports (list of strings)
+        host_config -- HostConfig instance
+        """
+        query_params = {}
+        set_container_name(query_params, 'name', name)
+
+        headers = {'content-type': 'application/json'}
+        json_params = {}
+        set_image_name(json_params, 'Image', image)
+        set_hostname(json_params, 'Hostname', hostname)
+        set_domainname(json_params, 'Domainname', domainname)
+        set_user_name(json_params, 'User', user)
+        set_integer(json_params, 'Memory', memory, 1)
+        set_integer(json_params, 'Swap', swap, 1)
+        set_integer(json_params, 'CpuShares', cpu_shares, 1)
+        set_integer(json_params, 'CpuPeriod', cpu_period, 1)
+        set_cpuset_list(json_params, 'CpusetCpus', cpuset_cpus)
+        set_cpuset_list(json_params, 'CpusetMems', cpuset_mems)
+        set_integer(json_params, 'BlkioWeight', blkio_weight, 10, 1000)
+        set_integer(json_params, 'MemorySwappiness', swappiness, 10, 1000)
+        set_boolean(json_params, 'OomKill', oom_kill)
+        set_boolean(json_params, 'AttachStdin', attach_stdin)
+        set_boolean(json_params, 'AttachStdout', attach_stdout)
+        set_boolean(json_params, 'AttachStderr', attach_stderr)
+        set_boolean(json_params, 'Tty', tty)
+        set_boolean(json_params, 'OpenStdin', open_stdin)
+        set_boolean(json_params, 'StdinOnce', stdin_once)
+        set_dict_of_strings(json_params, 'Env', env)
+        set_dict_of_strings(json_params, 'Labels', labels)
+        set_string_or_list_of_strings(json_params, 'Cmd', command)
+        set_string_or_list_of_strings(json_params, 'Entrypoint', entrypoint)
+        set_list_of_strings(json_params, 'Mounts', mounts)
+        set_string(json_params, 'WorkingDir', working_dir)
+        set_boolean(json_params, 'Network', network)
+        set_list_of_ports(json_params, 'ExposedPorts', exposed_ports)
+        set_host_config(json_params, 'HostConfig', host_config)
+        if 'Swap' in json_params:
+            if 'Memory' not in json_params:
+                raise TypeError("'swap' argument requires 'memory' argument")
+            json_params['MemorySwap'] = json_params['Memory'] + \
+                json_params.pop('Swap')
+        if not json_params.pop('OomKill', True):
+            json_params['OomKillDisable'] = True
+        if not json_params.pop('Network', True):
+            json_params['NetworkDisabled'] = True
+        if 'Env' in json_params:
+            json_params['Env'] = ['%s=%s' % (key, value)
+                                  for key, value in json_params['Env'].items()]
+        if 'ExposedPorts' in json_params:
+            json_params['ExposedPorts'] = {
+                port: {} for port in json_params['ExposedPorts']}
+
+        response = self._post('/containers/create', params=query_params,
+                              headers=headers, data=json.dumps(json_params))
+        response_json = response.json()
+        return DockerContainer(self, id=response_json['Id'])

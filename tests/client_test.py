@@ -8,6 +8,7 @@ import os
 import re
 import json
 import copy
+import subprocess
 
 import requests_mock
 
@@ -808,6 +809,99 @@ class image_tag_tests(ContextClientTestCase):
             self.client.image_tag('busybox:latest', 'myrepo')
 
 
+class container_create_tests(ContextClientTestCase):
+
+    simple_success_response = requests_mock.Response(json.dumps({
+        "Id": "e90e34656806",
+        "Warnings": []}), 200)
+
+    @mock.patch('requests.post')
+    def test_container_create_1_anon(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        container = self.client.container_create('busybox:latest')
+        self.assertIsInstance(container, DockerContainer)
+        (args, kwargs) = post_mock.call_args
+        self.assertIn('data', kwargs)
+        data_arg = json.loads(kwargs['data'])
+        self.assertNotIn('OomKillDisable', data_arg)
+        self.assertNotIn('NetworkDisable', data_arg)
+        self.assertNotIn('Env', data_arg)
+
+    @mock.patch('requests.post')
+    def test_container_create_2_named(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        container = self.client.container_create(
+            'busybox:latest', name='xd-docker-unittest')
+        self.assertIsInstance(container, DockerContainer)
+
+    @mock.patch('requests.post')
+    def test_container_create_with_command(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        container = self.client.container_create(
+            'busybox:latest', command='/bin/sh')
+        self.assertIsInstance(container, DockerContainer)
+
+    @mock.patch('requests.post')
+    def test_container_create_with_memory(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        self.client.container_create('busybox:latest', memory=1024*1024)
+
+    @mock.patch('requests.post')
+    def test_container_create_with_memory_and_swap(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        self.client.container_create('busybox:latest',
+                                     memory=1024*1024, swap=2*1024*1024)
+
+    def test_container_create_with_swap_but_not_memory(self):
+        with self.assertRaises(TypeError):
+            self.client.container_create('busybox:latest', swap=1024*1024)
+
+    @mock.patch('requests.post')
+    def test_container_create_with_oom_kill_false(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        self.client.container_create('busybox:latest', oom_kill=False)
+        (args, kwargs) = post_mock.call_args
+        self.assertIn('data', kwargs)
+        data_arg = json.loads(kwargs['data'])
+        self.assertIn('OomKillDisable', data_arg)
+        self.assertTrue(data_arg['OomKillDisable'])
+
+    @mock.patch('requests.post')
+    def test_container_create_with_network_false(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        self.client.container_create('busybox:latest', network=False)
+        (args, kwargs) = post_mock.call_args
+        self.assertIn('data', kwargs)
+        data_arg = json.loads(kwargs['data'])
+        self.assertIn('NetworkDisabled', data_arg)
+        self.assertTrue(data_arg['NetworkDisabled'])
+
+    @mock.patch('requests.post')
+    def test_container_create_with_env(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        self.client.container_create('busybox:latest',
+                                     env={'foo': '42', 'bar': '43'})
+        (args, kwargs) = post_mock.call_args
+        self.assertIn('data', kwargs)
+        data_arg = json.loads(kwargs['data'])
+        self.assertIn('Env', data_arg)
+        env_arg = sorted(data_arg['Env'])
+        self.assertEqual(env_arg, ['bar=43', 'foo=42'])
+
+    @mock.patch('requests.post')
+    def test_container_create_with_exposed_ports(self, post_mock):
+        post_mock.return_value = self.simple_success_response
+        self.client.container_create('busybox:latest',
+                                     exposed_ports=['22/tcp', '80/tcp'])
+        (args, kwargs) = post_mock.call_args
+        self.assertIn('data', kwargs)
+        data_arg = json.loads(kwargs['data'])
+        self.assertIn('ExposedPorts', data_arg)
+        exposed_ports_arg = data_arg['ExposedPorts']
+        print(exposed_ports_arg)
+        self.assertEqual(exposed_ports_arg, {'22/tcp': {}, '80/tcp': {}})
+
+
 @unittest.skipIf(not LOCAL_DOCKER_HOST,
                  'Live docker tests requires local docker host')
 class live_tests(unittest.case.TestCase):
@@ -818,6 +912,8 @@ class live_tests(unittest.case.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.context)
+        subprocess.call(['docker', 'rm', 'xd-docker-unittest'],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def test_image_build_1_pull(self):
         out = io.StringIO()
@@ -1061,6 +1157,23 @@ Step 0 : FROM debian:jessie
         self.client.image_pull('busybox:latest')
         self.client.image_tag('busybox:latest', 'test_image_tag:tag',
                               force=True)
+
+    def test_container_create_1_anon(self):
+        self.client.image_pull('busybox:latest')
+        container = self.client.container_create('busybox:latest')
+        self.assertIsInstance(container, DockerContainer)
+
+    def test_container_create_2_named(self):
+        self.client.image_pull('busybox:latest')
+        container = self.client.container_create(
+            'busybox:latest', name='xd-docker-unittest')
+        self.assertIsInstance(container, DockerContainer)
+
+    def test_container_create_3_with_command(self):
+        self.client.image_pull('busybox:latest')
+        container = self.client.container_create(
+            'busybox:latest', command='/bin/sh')
+        self.assertIsInstance(container, DockerContainer)
 
 # nocache
 # pull
