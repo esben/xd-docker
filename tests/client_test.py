@@ -136,27 +136,27 @@ class ping_tests(SimpleClientTestCase):
 class containers_tests(SimpleClientTestCase):
 
     response = [{
-            "Id": "8dfafdbc3a40",
-            "Image": "ubuntu:latest",
-            "Command": "echo 1",
-            "Created": 1367854155,
-            "Status": "Up 42 seconds",
-            "Ports": [
-                {"PrivatePort": 2222,
-                 "PublicPort": 3333,
-                 "Type": "tcp"}],
-            "SizeRw": 12288,
-            "SizeRootFs": 0
-        }, {
-            "Id": "9cd87474be90",
-            "Image": "ubuntu:latest",
-            "Command": "echo 222222",
-            "Created": 1367854155,
-            "Status": "Up 666 seconds",
-            "Ports": [],
-            "SizeRw": 12288,
-            "SizeRootFs": 0
-        }]
+        "Id": "8dfafdbc3a40",
+        "Image": "ubuntu:latest",
+        "Command": "echo 1",
+        "Created": 1367854155,
+        "Status": "Up 42 seconds",
+        "Ports": [
+            {"PrivatePort": 2222,
+             "PublicPort": 3333,
+             "Type": "tcp"}],
+        "SizeRw": 12288,
+        "SizeRootFs": 0
+    }, {
+        "Id": "9cd87474be90",
+        "Image": "ubuntu:latest",
+        "Command": "echo 222222",
+        "Created": 1367854155,
+        "Status": "Up 666 seconds",
+        "Ports": [],
+        "SizeRw": 12288,
+        "SizeRootFs": 0
+    }]
 
     @mock.patch('requests.get')
     def test_containers(self, get_mock):
@@ -220,16 +220,23 @@ class images_tests(SimpleClientTestCase):
         self.assertEqual(len(images), 2)
         for image in images.values():
             self.assertIsInstance(image, DockerImage)
-        self.assertIn('8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c', images)
-        self.assertIn('b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc', images)
-        self.assertEqual(images['8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c'].size, 131506275)
+        self.assertIn(
+            '8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c',
+            images)
+        self.assertIn(
+            'b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc',
+            images)
+        self.assertEqual(images[
+            '8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c'
+        ].size, 131506275)
 
 
 class image_inspect_tests(SimpleClientTestCase):
 
     response = {
         "Created": "2013-03-23T22:24:18.818426-07:00",
-        "Container": "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
+        "Container":
+        "3d67245a8d72ecf13f33dffac9f79dcdf70f75acb84d308770391510e0c23ad0",
         "ContainerConfig": {
             "Hostname": "",
             "User": "",
