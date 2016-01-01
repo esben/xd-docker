@@ -28,11 +28,13 @@ def set_integer(d, name, value, min=None, max=None):
     d[name] = value
 
 
-def set_boolean(d, name, value):
+def set_boolean(d, name, value, ignore=[]):
     if value is None:
         return
     if not isinstance(value, bool):
         raise TypeError('not boolean value: %s' % type(value))
+    if value in ignore:
+        return
     d[name] = value
 
 

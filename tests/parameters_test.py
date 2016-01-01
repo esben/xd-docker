@@ -73,6 +73,22 @@ class set_boolean_tests(ParametersTestCase):
         set_boolean(self.d, 'foo', None)
         self.assertEqual(self.d, {})
 
+    def test_ignore_true(self):
+        set_boolean(self.d, 'foo', True, ignore=[True])
+        self.assertEqual(self.d, {})
+
+    def test_ignore_true_not(self):
+        set_boolean(self.d, 'foo', False, ignore=[True])
+        self.assertEqual(self.d, {'foo': False})
+
+    def test_ignore_false(self):
+        set_boolean(self.d, 'foo', False, ignore=[False])
+        self.assertEqual(self.d, {})
+
+    def test_ignore_false_not(self):
+        set_boolean(self.d, 'foo', True, ignore=[False])
+        self.assertEqual(self.d, {'foo': True})
+
     def test_int(self):
         with self.assertRaises(TypeError):
             set_boolean(self.d, 'foo', 42)
