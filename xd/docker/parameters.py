@@ -7,13 +7,15 @@ log.setLevel(logging.INFO)
 
 
 import re
+from xd.docker.hostconfig import HostConfig
 
 
 __all__ = ['set_integer', 'set_boolean', 'set_string', 'set_list_of_strings',
            'set_string_or_list_of_strings', 'set_dict_of_strings',
            'set_container_name', 'set_image_name',
            'set_hostname', 'set_domainname', 'set_user_name',
-           'set_cpuset_list', 'set_list_of_ports']
+           'set_cpuset_list', 'set_list_of_ports',
+           'set_host_config']
 
 
 def set_integer(d, name, value, min=None, max=None):
@@ -185,3 +187,11 @@ def set_list_of_ports(d, name, value):
         if not PORT_RE.match(element):
             raise ValueError('invalid port specification: %s' % (element))
     d[name] = value
+
+
+def set_host_config(d, name, value, api_version):
+    if value is None:
+        return
+    if not isinstance(value, HostConfig):
+        raise TypeError('value must be HostConfig: %s' % type(value))
+    d[name] = value.json_object(api_version)
