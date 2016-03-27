@@ -11,3 +11,11 @@ class Response(object):
 
     def json(self):
         return json.loads(self.text)
+
+
+def version_response(api, client, git = "20f81dd", go = "go1.5.3"):
+    return Response(json.dumps({
+        "ApiVersion": api,
+        "Version": client,
+        "GitCommit": git,
+        "GoVersion": go}), 200)

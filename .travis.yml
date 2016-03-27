@@ -1,13 +1,45 @@
 language: python
 python:
-  - "3.4"
+  - 3.4
+  - 3.5
+
+env:
+  # Run unit test suite for all Python versions
+  - TEST_SUITE=unit
+
+matrix:
+  include:
+
+    # Run integration test suite with one Python version only, as it will use
+    # Python version provided by Alpine Linux anyway (see
+    # tests/integration/Dockerfile)
+    - python: 3.5
+      env: TEST_SUITE=integration DOCKER_VERSION=1.10
+    - python: 3.5
+      env: TEST_SUITE=integration DOCKER_VERSION=1.9
+    - python: 3.5
+      env: TEST_SUITE=integration DOCKER_VERSION=1.8
+    - python: 3.5
+      env: TEST_SUITE=integration DOCKER_VERSION=1.7
+    - python: 3.5
+      env: TEST_SUITE=integration DOCKER_VERSION=1.6
+    # Docker HUB does not support 1.5 clients and older
+    # https://forums.docker.com/t/docker-pull-deprecation-for-for-v1-5-clients
+
+    # PEP8 checking
+    - python: 3.5
+      env: TEST_SUITE=style
+
+dist: trusty
+sudo: required
+services:
+  - docker
 install:
-  - "pip install coveralls"
-  - "pip install requests requests_unixsocket"
-  - "git config --global user.email 'travis@xd-embedded.org'"
-  - "git config --global user.name 'Travis CI'"
-script: "nosetests"
+  - pip install -r requirements.txt -r tests/requirements.txt
+  - pip install coveralls
+
+script:
+  - ./ci-test.sh ${TEST_SUITE}
+
 after_success:
   - coveralls
-notifications:
-  irc: "chat.freenode.net#xd-embedded"

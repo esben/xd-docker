@@ -3,11 +3,12 @@ import mock
 import tempfile
 import shutil
 import os
-
+import requests
 import requests_mock
 
 from xd.docker.image import *
 from xd.docker.client import *
+
 
 class tests(unittest.case.TestCase):
 
@@ -15,22 +16,22 @@ class tests(unittest.case.TestCase):
         self.client = DockerClient()
 
     def test_init_noargs(self):
-        image = DockerImage(self.client)
-        self.assertIsInstance(image, DockerImage)
+        image = Image(self.client)
+        self.assertIsInstance(image, Image)
 
     def test_init_args_created(self):
-        image = DockerImage(self.client,
+        image = Image(self.client,
                             id_='123456789abcdef', created=1234567)
-        self.assertIsInstance(image, DockerImage)
+        self.assertIsInstance(image, Image)
 
     def test_init_args_dockerfile(self):
-        image = DockerImage(self.client,
+        image = Image(self.client,
                             context='/tmp/image-ctx', dockerfile='Dockerfile')
-        self.assertIsInstance(image, DockerImage)
+        self.assertIsInstance(image, Image)
 
     @mock.patch('requests.get')
     def test_inspect_by_id(self, get_mock):
-        image = DockerImage(self.client, id_='b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc')
+        image = Image(self.client, id_='b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc')
         get_mock.return_value = requests_mock.Response('''\
 {
   "Created": "2013-03-23T22:24:18.818426-07:00",
@@ -71,7 +72,7 @@ class tests(unittest.case.TestCase):
 
     @mock.patch('requests.get')
     def test_inspect_by_tag(self, get_mock):
-        image = DockerImage(self.client, tags=['foobar'])
+        image = Image(self.client, tags=['foobar'])
         get_mock.return_value = requests_mock.Response('''\
 {
   "Created": "2013-03-23T22:24:18.818426-07:00",
@@ -111,7 +112,7 @@ class tests(unittest.case.TestCase):
         self.assertIsNotNone(image.parent)
 
     def test_inspect_by_nothing(self):
-        image = DockerImage(self.client)
+        image = Image(self.client)
         with self.assertRaises(AnonymousImage):
             image.inspect()
 
@@ -120,6 +121,8 @@ class build_tests(unittest.case.TestCase):
 
     def setUp(self):
         self.client = DockerClient()
+        requests.get = mock.MagicMock(
+            return_value=requests_mock.version_response("1.22", "1.10.3"))
         self.context = tempfile.mkdtemp()
 
     def tearDown(self):
@@ -132,7 +135,7 @@ class build_tests(unittest.case.TestCase):
 FROM debian:jessie
 RUN echo Hello world
 ''')
-        image = DockerImage(self.client, context=self.context)
+        image = Image(self.client, context=self.context)
         post_mock.return_value = requests_mock.Response('''\
 {"stream":"Step 0 : FROM debian:jessie\\n"}
 {"stream":" ---\\u003e 0e30e84e9513\\n"}
@@ -153,7 +156,7 @@ RUN echo Hello world
 FROM debian:jessie
 RUN echo Hello world
 ''')
-        image = DockerImage(self.client, context=self.context)
+        image = Image(self.client, context=self.context)
         post_mock.return_value = requests_mock.Response('''\
 {"stream":"Step 0 : FROM debian:jessie\\n"}
 {"stream":" ---\\u003e 0e30e84e9513\\n"}
@@ -162,7 +165,7 @@ RUN echo Hello world
 {"stream":" ---\\u003e e4d9194b48f8\\n"}
 {"stream":"Successfully built e4d9194b48f8\\n"}
 ''', 200)
-        image.build(name='xd-docker-unittest')
+        image.build(tag='xd-docker-unittest')
         self.assertEqual(image.id, 'e4d9194b48f8')
         kwargs = post_mock.call_args[1]
         self.assertEqual(kwargs['params'], {'t': 'xd-docker-unittest'})

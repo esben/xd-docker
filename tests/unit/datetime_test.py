@@ -3,6 +3,7 @@ import mock
 
 from xd.docker.datetime import *
 
+
 class tests(unittest.case.TestCase):
 
     def test_strptime_empty(self):

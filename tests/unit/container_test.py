@@ -5,22 +5,23 @@ from xd.docker.container import *
 from xd.docker.image import *
 from xd.docker.client import *
 
+
 class tests(unittest.case.TestCase):
 
     def setUp(self):
         self.client = DockerClient()
 
     def test_init_noargs(self):
-        container = DockerContainer(self.client)
-        self.assertIsInstance(container, DockerContainer)
+        container = Container(self.client)
+        self.assertIsInstance(container, Container)
 
     def test_init_id_only(self):
-        container = DockerContainer(self.client, '0123456789abcdef'*4)
-        self.assertIsInstance(container, DockerContainer)
+        container = Container(self.client, '0123456789abcdef'*4)
+        self.assertIsInstance(container, Container)
         self.assertEqual(container.id, '0123456789abcdef'*4)
 
     def test_init_list_response(self):
-        container = DockerContainer(
+        container = Container(
             self.client, list_response={
                 'Id': '0123456789abcdef'*4,
                 'Names': ['/foobar'],
@@ -36,9 +37,9 @@ class tests(unittest.case.TestCase):
                 'SizeRW': 12288,
                 'SizeRootFs': 0,
             })
-        self.assertIsInstance(container, DockerContainer)
+        self.assertIsInstance(container, Container)
         self.assertEqual(container.id, '0123456789abcdef'*4)
-        self.assertIsInstance(container.image, DockerImage)
+        self.assertIsInstance(container.image, Image)
         self.assertEqual(container.image.tags, ['ubuntu:latest'])
         self.assertEqual(container.command, 'echo Hello world')
         self.assertEqual(container.created, 1367854155)
@@ -51,9 +52,8 @@ class tests(unittest.case.TestCase):
         self.assertEqual(container.sizerw, 12288)
         self.assertEqual(container.sizerootfs, 0)
 
-
     def test_init_inspect_response(self):
-        container = DockerContainer(
+        container = Container(
             self.client, id='123456789abcdef'*4, inspect_response={
                 "AppArmorProfile": "",
                 "Args": [
@@ -72,7 +72,7 @@ class tests(unittest.case.TestCase):
                     "Domainname": "",
                     "Entrypoint": None,
                     "Env": [
-                        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+                        "PATH=/usr/sbin:/usr/bin:/sbin:/bin"
                     ],
                     "ExposedPorts": None,
                     "Hostname": "ba033ac44011",
@@ -173,14 +173,14 @@ class tests(unittest.case.TestCase):
                     }
                 ]
             })
-        self.assertIsNotNone(container, DockerContainer)
+        self.assertIsNotNone(container, Container)
         et = container.state.execution_time
         self.assertEqual(et.days, 0)
         self.assertEqual(et.seconds, 184)
         self.assertEqual(et.microseconds, 7557)
 
     def test_init_inspect_response_partial(self):
-        container = DockerContainer(
+        container = Container(
             self.client, id='123456789abcdef'*4, inspect_response={
                 "AppArmorProfile": "",
                 "Args": [
@@ -195,7 +195,7 @@ class tests(unittest.case.TestCase):
                     ],
                     "Entrypoint": None,
                     "Env": [
-                        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+                        "PATH=/usr/sbin:/usr/bin:/sbin:/bin"
                     ],
                     "Hostname": "ba033ac44011",
                     "Image": "ubuntu",
@@ -239,4 +239,4 @@ class tests(unittest.case.TestCase):
                     }
                 ]
             })
-        self.assertIsNotNone(container, DockerContainer)
+        self.assertIsNotNone(container, Container)
