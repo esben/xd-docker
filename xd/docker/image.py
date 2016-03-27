@@ -41,8 +41,8 @@ class DockerImage(object):
         self.parent = i['Parent']
 
     def build(self, **kwargs):
-        if 'name' in kwargs:
-            self.tags = [kwargs['name']]
+        if 'tag' in kwargs:
+            self.tags = [kwargs['tag']]
         else:
             self.tags = []
         self.id = self.client.image_build(
