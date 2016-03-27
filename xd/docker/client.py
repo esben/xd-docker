@@ -15,7 +15,9 @@ import os
 import io
 import tarfile
 import re
+import functools
 
+from typing import Any, Optional, Union, Mapping, Sequence, Tuple, Dict
 
 from xd.docker.container import *
 from xd.docker.image import *
@@ -41,54 +43,6 @@ class ServerError(HTTPError):
         super(ServerError, self).__init__(url, code)
 
 
-def parse_kwargs(allowed_kwargs, kwargs):
-    params = {}
-    for arg_name, param_name, validator in allowed_kwargs:
-        try:
-            arg = kwargs.pop(arg_name)
-        except KeyError:
-            continue
-        if arg is None:
-            continue
-        if isinstance(validator, type):
-            if not isinstance(arg, validator):
-                raise TypeError("invalid '%s' argument: %s" % (
-                    arg_name, repr(arg)))
-        else:
-            assert callable(validator)
-            try:
-                if not validator(arg):
-                    raise ValueError("invalid '%s' argument: %s" % (
-                        arg_name, repr(arg)))
-            except TypeError:
-                raise TypeError("invalid '%s' argument: %s" % (
-                    arg_name, repr(arg)))
-        param_name = param_name.split('.')
-        p = params
-        while len(param_name) > 1:
-            pn = param_name.pop(0)
-            if pn not in p:
-                p[pn] = {}
-            p = p[pn]
-        pn = param_name.pop()
-        p[pn] = arg
-    return params
-
-
-def is_image_name(name):
-    if not isinstance(name, str):
-        raise TypeError()
-    if name.count(':') > 1:
-        return False
-    return True
-
-
-def is_bool_or_force(arg):
-    if isinstance(arg, bool):
-        return True
-    if arg == 'force':
-        return True
-    return False
 
 
 class DockerClient(object):
@@ -140,6 +94,12 @@ class DockerClient(object):
         r = self._get('/version')
         version = json.loads(r.text)
         return version
+
+    @property
+    @functools.lru_cache(maxsize=1)
+    def api_version(self):
+        version = self.version()
+        return tuple([int(i) for i in version['ApiVersion'].split('.')])
 
     def ping(self):
         """Ping the docker server."""
@@ -196,8 +156,17 @@ class DockerClient(object):
                 self, id_=i['Id'], created=i['Created'], size=i['Size'],
                 parent=i['Parent'])
 
-    def image_build(self, context, registry_config=None,
-                    output=('error', 'stream', 'status'), **kwargs):
+    def image_build(self, context: str,
+                    output=('error', 'stream', 'status'),
+                    dockerfile: Optional[str] = None,
+                    tag: Optional[Union[RepositoryTag, str]] = None,
+                    cache: bool = True,
+                    pull: Optional[bool] = None,
+                    rm: Optional[bool] = None,
+                    force_rm: Optional[bool] = None,
+                    host_config: Optional[HostConfig] = None,
+                    registry_config: Optional[RegistryAuthConfig] = None,
+                    buildargs: Optional[Dict[str, str]] = None):
         """Build image.
 
         Build image from a given context or stand-alone Dockerfile.
@@ -207,31 +176,40 @@ class DockerClient(object):
                    stand-alone Dockerfile.
 
         Keyword arguments:
-        dockerfile -- path to dockerfile in build context.
-        name -- name (and optionally a tag) to be applied to the resulting
-                image.
-        nocache -- do not use the cache when building the image
-                   (default: False).
-        pull -- attempt to pull the image even if an older image exists locally
-                (default: False).
-        rm -- False/True/'force'. Remove intermediate containers after a
-              successful build, and if 'force', always do that.
-              (default: True).
-        memory -- set memory limit for build.
-        memswap -- total memory (memory + swap), -1 to disable swap.
-        cpushares -- CPU shares (relative weight).
-        cpusetcpus -- CPUs in which to allow execution.
-        registry_config -- dict containing ConfigFile object specification.
         output -- tuple/list of with type of output information to allow
                   (Default: ('stream', 'status', 'error')).
+        dockerfile -- path to dockerfile in build context.
+        tag -- repository name and tag to be applied to the resulting image.
+        cache -- use the cache when building the image (default: True).
+        pull -- attempt to pull the image even if an older image exists locally
+                (default: False).
+        rm -- False/True. Remove intermediate containers after a
+              successful build (default: True).
+        force_rm -- False/True. Always remove intermediate containers after
+                    build (default: False).
+        host_config -- HostConfig instance.
+        registry_config -- RegistryAuthConfig instance.
+        buildargs -- build-time environment variables.
         """
+
+        # Handle convenience argument types
+        if isinstance(tag, str):
+            tag = RepositoryTag(tag)
+
+        # TODO: take from HostConfig:
+        # memory
+        # swap
+        # cpu_shares
+        # cpu_period
+        # cpuset_cpus
+
+        # Request headers
         headers = {'content-type': 'application/tar'}
         if registry_config:
-            if not isinstance(registry_config, dict):
-                raise TypeError('registry_config must be dict: %s' % (
-                    type(registry_config)))
-            registry_config = json.dumps(registry_config).encode('utf-8')
+            registry_config = json.dumps(registry_config.json()).encode('utf-8')
             headers['X-Registry-Config'] = base64.b64encode(registry_config)
+
+        # Request body
         if not os.path.exists(context):
             raise ValueError('context argument does not exist: %s' % (context))
         tar_buf = io.BytesIO()
@@ -242,22 +220,37 @@ class DockerClient(object):
             for f in os.listdir(context):
                 tar.add(os.path.join(context, f), f)
         tar.close()
-        params = parse_kwargs((
-            ('dockerfile', 'dockerfile', str),
-            ('name', 't', is_image_name),
-            ('nocache', 'nocache', bool),
-            ('pull', 'pull', bool),
-            ('rm', 'rm', is_bool_or_force),
-            ('memory', 'memory', int),
-            ('memswap', 'memswap', int),
-            ('cpushares', 'cpushares', int),
-            ('cpusetcpus', 'cpusetcpus', str),
-            ), kwargs)
-        if 'rm' in params and params['rm'] == 'force':
-            del params['rm']
-            params['forcerm'] = True
+
+        # Query parameters
+        query_params = {}
+        no_cache = None if cache else True
+        if force_rm:
+            rm = None
+        arg_fields = (
+            ('dockerfile', (1, 17), 'dockerfile'),
+            ('t', (1, 14), 'tag'),
+            ('nocache', (1, 14), 'no_cache'),
+            ('pull', (1, 16), 'pull'),
+            ('rm', (1, 16), 'rm'),
+            ('forcerm', (1, 16), 'force_rm'),
+            ('buildargs', (1, 21), 'buildargs'),
+            )
+        json_update(query_params, locals(), arg_fields, self.api_version)
+        host_config_fields = (
+            ('memory', (1, 18), 'memory'),
+            ('memswap', (1, 18), 'memory_swap'),
+            ('cpushares', (1, 18), 'cpu_shares'),
+            ('cpusetcpus', (1, 18), 'cpuset_cpus'),
+            ('cpuperiod', (1, 19), 'cpu_period'),
+            ('cpuquota', (1, 19), 'cpu_quota'),
+            ('shmsize', (1, 22), 'shm_size'),
+            )
+        if host_config:
+            json_update(query_params, host_config, host_config_fields,
+                        self.api_version)
+
         r = self._post('/build', headers=headers, data=tar_buf.getvalue(),
-                       params=params, stream=True)
+                       params=query_params, stream=True)
         decoder = json.JSONDecoder()
         failed = False
         for line in r.iter_lines():
@@ -344,95 +337,46 @@ class DockerClient(object):
         self._post('/images/{}/tag'.format(image), params=params)
 
     def container_create(
-            self, image, name=None, hostname=None, domainname=None, user=None,
-            memory=None, swap=None, cpu_shares=None, cpu_period=None,
-            cpuset_cpus=None, cpuset_mems=None, blkio_weight=None,
-            swappiness=None, oom_kill=True,
-            attach_stdin=None, attach_stdout=None, attach_stderr=None,
-            tty=None, open_stdin=None, stdin_once=None,
-            env=None, labels=None, command=None, entrypoint=None,
-            mounts=None, working_dir=None, network=None, exposed_ports=None,
-            host_config=None):
+            self,
+            config: ContainerConfig,
+            name: Optional[Union[ContainerName, str]] = None,
+            mounts: Optional[Sequence[VolumeMount]] = None,
+            host_config: Optional[HostConfig] = None):
         """Create a new container.
 
         Create a new container based on existing image.
 
         Arguments:
-        image -- image create container from
         name -- name to assign to container
-        hostname -- hostname to use for the container
-        domainname -- domain name to use for the container
-        user -- user inside the container (user name)
-        memory -- memory limit (bytes)
-        swap -- swap limit (bytes)
-        cpu_shares -- cpu shares relative to other containers (integer value)
-        cpu_period -- length of a cpu period (microseconds)
-        cpuset_cpus -- cgroups cpuset.cpu to use
-        cpuset_mems -- cgroups cpuset.mem to use
-        blkio_weight -- relative block io weight (10 ... 1000)
-        swappiness -- memory swappiness behavior (10 ... 1000)
-        oom_kill -- whether to enable OOM killer for container or not
-        attach_stdin -- attach to stdin (boolean)
-        attach_stdout -- attach to stdout (boolean)
-        attach_stderr -- attach to stderr (boolean)
-        tty -- attach standard streams to a tty (boolean)
-        open_stdin -- open stdin (boolean)
-        stdin_once -- close stdin after the client disconnects (boolean)
-        env -- environment variables (dict)
-        labels -- labels to set on container (dict)
-        command -- command to run (string or list of strings)
-        entrypoint -- container entrypoint (string or list of strings)
         mounts -- mount points in the container (list of strings)
-        working_dir -- working directory for command to run in (string)
-        network -- whether to enable networking in the container (boolean)
-        exposed_ports -- exposed ports (list of strings)
+        config -- ContainerConfig instance
         host_config -- HostConfig instance
         """
+
+        # Handle convenience argument types
+        if isinstance(name, str):
+            name = ContainerName(name)
+
         query_params = {}
-        set_container_name(query_params, 'name', name)
+        arg_fields = (
+            ('name', (1, 14), 'name'),
+            )
+        json_update(query_params, locals(), arg_fields, self.api_version)
+
+        # TODO: implementing handling of 'mounts' argument...
+
+        # and figure out how to handle verification of fx. image, user and
+        # container name arguments.  Maybe subclass str for the various string
+        # type arguments.
 
         headers = {'content-type': 'application/json'}
         json_params = {}
-        set_image_name(json_params, 'Image', image)
-        set_hostname(json_params, 'Hostname', hostname)
-        set_domainname(json_params, 'Domainname', domainname)
-        set_user_name(json_params, 'User', user)
-        set_integer(json_params, 'Memory', memory, 1)
-        set_integer(json_params, 'Swap', swap, 1)
-        set_integer(json_params, 'CpuShares', cpu_shares, 1)
-        set_integer(json_params, 'CpuPeriod', cpu_period, 1)
-        set_cpuset_list(json_params, 'CpusetCpus', cpuset_cpus)
-        set_cpuset_list(json_params, 'CpusetMems', cpuset_mems)
-        set_integer(json_params, 'BlkioWeight', blkio_weight, 10, 1000)
-        set_integer(json_params, 'MemorySwappiness', swappiness, 10, 1000)
-        set_boolean(json_params, 'OomKill', oom_kill)
-        set_boolean(json_params, 'AttachStdin', attach_stdin)
-        set_boolean(json_params, 'AttachStdout', attach_stdout)
-        set_boolean(json_params, 'AttachStderr', attach_stderr)
-        set_boolean(json_params, 'Tty', tty)
-        set_boolean(json_params, 'OpenStdin', open_stdin)
-        set_boolean(json_params, 'StdinOnce', stdin_once)
-        set_dict_of_strings(json_params, 'Env', env)
-        set_dict_of_strings(json_params, 'Labels', labels)
-        set_string_or_list_of_strings(json_params, 'Cmd', command)
-        set_string_or_list_of_strings(json_params, 'Entrypoint', entrypoint)
-        set_list_of_strings(json_params, 'Mounts', mounts)
-        set_string(json_params, 'WorkingDir', working_dir)
-        set_boolean(json_params, 'Network', network)
-        set_list_of_ports(json_params, 'ExposedPorts', exposed_ports)
-        set_host_config(json_params, 'HostConfig', host_config)
-        if 'Swap' in json_params:
-            if 'Memory' not in json_params:
-                raise TypeError("'swap' argument requires 'memory' argument")
-            json_params['MemorySwap'] = json_params['Memory'] + \
-                json_params.pop('Swap')
-        if not json_params.pop('OomKill', True):
-            json_params['OomKillDisable'] = True
-        if not json_params.pop('Network', True):
-            json_params['NetworkDisabled'] = True
-        if 'Env' in json_params:
-            json_params['Env'] = ['%s=%s' % (key, value)
-                                  for key, value in json_params['Env'].items()]
+        if isinstance(config, str):
+            config = ContainerConfig(config)
+        if config:
+            json_params.update(config.json(self.api_version))
+        if host_config:
+            json_params['HostConfig'] = host_config.json(self.api_version)
         if 'ExposedPorts' in json_params:
             json_params['ExposedPorts'] = {
                 port: {} for port in json_params['ExposedPorts']}
