@@ -620,12 +620,6 @@ RUN echo Hello world
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
 Pulling repository debian
-Pulling image \(jessie\) from debian
-Pulling image \(jessie\) from debian, endpoint: https://registry-1.docker.io/v1/
-Pulling dependent layers
-Download complete
-Download complete
-Download complete
 Status: Image is up to date for debian:jessie
  ---> [0-9a-f]+
 Step 1 : RUN echo Hello world

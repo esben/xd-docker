@@ -70,6 +70,31 @@ class DockerClient(object):
         else:
             raise HTTPError(url, status_code)
 
+    def _process_response_output(self, r, output, last_line=False):
+        decoder = json.JSONDecoder()
+        failed = False
+        for line in r.iter_lines():
+            line = line.decode('utf-8')
+            index = 0
+            while index < len(line):
+                data, extra_data_index = decoder.raw_decode(line[index:])
+                index += extra_data_index
+                for t in ('progressDetail', 'stream', 'status', 'error'):
+                    if t not in data:
+                        continue
+                    if t not in output:
+                        break
+                    print(data[t].rstrip('\n'))
+                if 'error' in data:
+                    failed = True
+        if failed:
+            return False
+        else:
+            if last_line:
+                return data
+            else:
+                return True
+
     def _get(self, url, params=None, headers=None, stream=False):
         url = self.base_url + url
         r = requests.get(url, params=params, headers=headers, stream=stream)
@@ -251,24 +276,11 @@ class DockerClient(object):
 
         r = self._post('/build', headers=headers, data=tar_buf.getvalue(),
                        params=query_params, stream=True)
-        decoder = json.JSONDecoder()
-        failed = False
-        for line in r.iter_lines():
-            if not line:
-                continue
-            line = line.decode('utf-8')
-            index = 0
-            while index < len(line):
-                data, extra_data_index = decoder.raw_decode(line[index:])
-                index += extra_data_index
-                for t in ('stream', 'status', 'error'):
-                    if t in output and t in data:
-                        print(data[t].rstrip('\n'))
-                if 'error' in data:
-                    failed = True
-        if failed:
+        false_or_last_line = self._process_response_output(r, output, last_line=True)
+        if false_or_last_line is False:
             return None
-        id_match = re.match('Successfully built ([0-9a-f]+)', data['stream'])
+        id_match = re.match('Successfully built ([0-9a-f]+)',
+                            false_or_last_line['stream'])
         return id_match.group(1)
 
     def image_pull(self, name, registry_auth=None,
@@ -292,21 +304,7 @@ class DockerClient(object):
             headers['X-Registry-Auth'] = base64.b64encode(registry_auth)
         r = self._post('/images/create', headers=headers, params=params,
                        stream=True)
-        decoder = json.JSONDecoder()
-        failed = False
-        for line in r.iter_lines():
-            line = line.decode('utf-8')
-            index = 0
-            while index < len(line):
-                data, extra_data_index = decoder.raw_decode(line[index:])
-                index += extra_data_index
-                for t in ('stream', 'status', 'error'):
-                    if t in output and t in data:
-                        print(data[t].rstrip('\n'))
-                if 'error' in data:
-                    failed = True
-        if failed:
-            return None
+        return self._process_response_output(r, output)
 
     def image_remove(self, name):
         """Remove an image.
