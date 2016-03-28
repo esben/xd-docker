@@ -3,14 +3,14 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-__all__ = ['DockerImage', 'AnonymousImage']
+__all__ = ['Image', 'AnonymousImage']
 
 
 class AnonymousImage(Exception):
     pass
 
 
-class DockerImage(object):
+class Image(object):
     """Docker image."""
 
     def __init__(self, client, id_=None, created=None, tags=None,

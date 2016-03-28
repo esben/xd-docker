@@ -1,15 +1,15 @@
+from xd.docker.image import Image
+from xd.docker.datetime import strptime
+
 import logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
-from xd.docker.image import *
-from xd.docker.datetime import *
+
+__all__ = ['Container']
 
 
-__all__ = ['DockerContainer']
-
-
-class DockerContainerState(object):
+class ContainerState(object):
     def __init__(self, state):
         assert state is not None
         self.error = state.get('Error', None)
@@ -27,7 +27,7 @@ class DockerContainerState(object):
         return (self.finished_at - self.started_at)
 
 
-class DockerContainer(object):
+class Container(object):
     """Docker container."""
 
     def __init__(self, client, id=None, name=None,
@@ -52,7 +52,7 @@ class DockerContainer(object):
             except KeyError:
                 continue
             if name == 'Image':
-                value = DockerImage(self.client, tags=[value])
+                value = Image(self.client, tags=[value])
             elif name == 'Names':
                 assert isinstance(value, list)
                 assert len(value) == 1
@@ -80,7 +80,7 @@ class DockerContainer(object):
         self._parse_more_attrs(self.NETWORK_SETTINGS_ATTRS,
                                response.get('NetworkSettings'))
         if 'State' in response:
-            self.state = DockerContainerState(response.get('State'))
+            self.state = ContainerState(response.get('State'))
 
     def _parse_more_attrs(self, attrs, response):
         for name in attrs:

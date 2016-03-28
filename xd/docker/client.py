@@ -1,14 +1,9 @@
 """Module containing DockerClient and associated exceptions."""
 
-import logging
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-
 
 import urllib.parse
 import requests
 import requests_unixsocket
-requests_unixsocket.monkeypatch()
 import json
 import base64
 import os
@@ -17,11 +12,18 @@ import tarfile
 import re
 import functools
 
-from typing import Any, Optional, Union, Mapping, Sequence, Tuple, Dict
+from typing import Optional, Union, Sequence, Dict
 
-from xd.docker.container import *
-from xd.docker.image import *
-from xd.docker.parameters import *
+from xd.docker.container import Container
+from xd.docker.image import Image
+from xd.docker.parameters import ContainerConfig, HostConfig, ContainerName, \
+    RepositoryTag, RegistryAuthConfig, VolumeMount, json_update
+
+import logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
+requests_unixsocket.monkeypatch()
 
 
 __all__ = ['DockerClient', 'HTTPError', 'ClientError', 'ServerError']
@@ -41,8 +43,6 @@ class ClientError(HTTPError):
 class ServerError(HTTPError):
     def __init__(self, url, code):
         super(ServerError, self).__init__(url, code)
-
-
 
 
 class DockerClient(object):
@@ -143,18 +143,18 @@ class DockerClient(object):
         r = self._get('/containers/json', params=params)
         containers = {}
         for c in json.loads(r.text):
-            containers[c['Id']] = DockerContainer(self, list_response=c)
+            containers[c['Id']] = Container(self, list_response=c)
         return containers
 
     def images(self):
         """Get list of images.
 
-        Returns list of DockerImage instances of all images.
+        Returns list of Image instances of all images.
         """
         r = self._get('/images/json')
         images = {}
         for c in json.loads(r.text):
-            images[c['Id']] = DockerImage(
+            images[c['Id']] = Image(
                 self, id_=c['Id'], created=c['Created'], tags=c['RepoTags'],
                 size=c['Size'], virtual_size=c['VirtualSize'])
         return images
@@ -162,7 +162,7 @@ class DockerClient(object):
     def image_inspect(self, name, raw=False):
         """Get image with low-level information.
 
-        Get low-level information of a named image.  Returns DockerImage
+        Get low-level information of a named image.  Returns Image
         instance with the information.
 
         Arguments:
@@ -170,28 +170,28 @@ class DockerClient(object):
 
         Keyword arguments:
         raw -- if True, return the low-level image information in raw format
-               instaed of DockerImage instance.
+               instaed of Image instance.
         """
         r = self._get('/images/{}/json'.format(name))
         i = json.loads(r.text)
         if raw:
             return i
         else:
-            return DockerImage(
+            return Image(
                 self, id_=i['Id'], created=i['Created'], size=i['Size'],
                 parent=i['Parent'])
 
     def image_build(self, context: str,
                     output=('error', 'stream', 'status'),
-                    dockerfile: Optional[str] = None,
-                    tag: Optional[Union[RepositoryTag, str]] = None,
-                    cache: bool = True,
-                    pull: Optional[bool] = None,
-                    rm: Optional[bool] = None,
-                    force_rm: Optional[bool] = None,
-                    host_config: Optional[HostConfig] = None,
-                    registry_config: Optional[RegistryAuthConfig] = None,
-                    buildargs: Optional[Dict[str, str]] = None):
+                    dockerfile: Optional[str]=None,
+                    tag: Optional[Union[RepositoryTag, str]]=None,
+                    cache: bool=True,
+                    pull: Optional[bool]=None,
+                    rm: Optional[bool]=None,
+                    force_rm: Optional[bool]=None,
+                    host_config: Optional[HostConfig]=None,
+                    registry_config: Optional[RegistryAuthConfig]=None,
+                    buildargs: Optional[Dict[str, str]]=None):
         """Build image.
 
         Build image from a given context or stand-alone Dockerfile.
@@ -231,7 +231,8 @@ class DockerClient(object):
         # Request headers
         headers = {'content-type': 'application/tar'}
         if registry_config:
-            registry_config = json.dumps(registry_config.json()).encode('utf-8')
+            registry_config = json.dumps(
+                registry_config.json()).encode('utf-8')
             headers['X-Registry-Config'] = base64.b64encode(registry_config)
 
         # Request body
@@ -276,7 +277,8 @@ class DockerClient(object):
 
         r = self._post('/build', headers=headers, data=tar_buf.getvalue(),
                        params=query_params, stream=True)
-        false_or_last_line = self._process_response_output(r, output, last_line=True)
+        false_or_last_line = self._process_response_output(
+            r, output, last_line=True)
         if false_or_last_line is False:
             return None
         id_match = re.match('Successfully built ([0-9a-f]+)',
@@ -337,9 +339,9 @@ class DockerClient(object):
     def container_create(
             self,
             config: ContainerConfig,
-            name: Optional[Union[ContainerName, str]] = None,
-            mounts: Optional[Sequence[VolumeMount]] = None,
-            host_config: Optional[HostConfig] = None):
+            name: Optional[Union[ContainerName, str]]=None,
+            mounts: Optional[Sequence[VolumeMount]]=None,
+            host_config: Optional[HostConfig]=None):
         """Create a new container.
 
         Create a new container based on existing image.
@@ -382,4 +384,4 @@ class DockerClient(object):
         response = self._post('/containers/create', params=query_params,
                               headers=headers, data=json.dumps(json_params))
         response_json = response.json()
-        return DockerContainer(self, id=response_json['Id'])
+        return Container(self, id=response_json['Id'])
