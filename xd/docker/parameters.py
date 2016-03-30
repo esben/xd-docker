@@ -660,14 +660,13 @@ class HostConfig(object):
             dns_search = list(dns_search)
         self.dns_search = dns_search
         if extra_hosts is not None:
-            for i in range(len(extra_hosts)):
-                h = extra_hosts[i]
-                if isinstance(h, str):
-                    h = h.split(':')
-                    if len(h) != 2:
+            for index, host in enumerate(extra_hosts):
+                if isinstance(host, str):
+                    host = host.split(':')
+                    if len(host) != 2:
                         raise ValueError('invalid extra_hosts str value: %s' %
-                                         extra_hosts[i])
-                    extra_hosts[i] = HostnameIPMapping(*h)
+                                         extra_hosts[index])
+                    extra_hosts[index] = HostnameIPMapping(*host)
         self.extra_hosts = extra_hosts
         if group_add is not None:
             group_add = list(group_add)
