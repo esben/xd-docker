@@ -36,10 +36,12 @@ services:
   - docker
 install:
   - pip install -r requirements.txt -r tests/requirements.txt
-  - pip install coveralls
 
 script:
-  - ./ci-test.sh ${TEST_SUITE}
+  - ./ci-test.sh ${TEST_SUITE} --cov-report=xml
 
 after_success:
+  - pip install coveralls codacy-coverage
   - coveralls
+  - test -n "$CODACY_PROJECT_TOKEN" &&
+    python-codacy-coverage -r coverage.xml -c $TRAVIS_COMMIT
