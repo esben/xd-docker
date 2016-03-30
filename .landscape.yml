@@ -1,0 +1,6 @@
+python-targets:
+  - 3
+max-line-length: 80
+requirements:
+  - requirements.txt
+  - tests/requirements.txt
