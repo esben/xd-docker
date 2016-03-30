@@ -60,7 +60,8 @@ class DockerClient(object):
             raise ValueError('Invalid host value: {}'.format(host))
         self.base_url = host
 
-    def _check_http_status_code(self, url, status_code):
+    @staticmethod
+    def _check_http_status_code(url, status_code):
         if status_code >= 200 and status_code < 300:
             return
         elif status_code >= 400 and status_code <= 499:
@@ -70,7 +71,8 @@ class DockerClient(object):
         else:
             raise HTTPError(url, status_code)
 
-    def _process_response_output(self, r, output, last_line=False):
+    @staticmethod
+    def _process_response_output(r, output, last_line=False):
         decoder = json.JSONDecoder()
         failed = False
         for line in r.iter_lines():
