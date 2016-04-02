@@ -13,6 +13,7 @@ with Docker in Python (3).
 - [![Stories in Ready](https://badge.waffle.io/XD-embedded/xd-docker.png?label=ready&title=Ready)](https://waffle.io/XD-embedded/xd-docker) - Kanban board provided by [waffle.io](https://waffle.io/)
 - [![Travis CI Status](https://travis-ci.org/XD-embedded/xd-docker.svg?branch=master)](https://travis-ci.org/XD-embedded/xd-docker) - Continous Integration is provided by [Travis CI](https://travis-ci.org)
 - [![Coverage Status](https://coveralls.io/repos/XD-embedded/xd-docker/badge.svg?branch=master)](https://coveralls.io/r/XD-embedded/xd-docker?branch=master) - Code coverage analysis is provided by [Coveralls](https://coveralls.io)
+- [![Codacy Status](https://api.codacy.com/project/badge/grade/02460502b6bd4c069bcb757fce9344bb)](https://www.codacy.com/app/esben_2844/xd-docker) - Static code analysis by [Codacy](http://codacy.com)
 
 ## License
 
