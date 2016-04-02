@@ -668,6 +668,7 @@ class HostConfig(object):
             dns_search = list(dns_search)
         self.dns_search = dns_search
         if extra_hosts is not None:
+            extra_hosts = list(extra_hosts)
             for index, host in enumerate(extra_hosts):
                 if isinstance(host, str):
                     host = host.split(':')
