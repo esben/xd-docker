@@ -20,13 +20,13 @@ ApiVersion = Tuple[int, int]
 __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
            'json_update',
            'Parameter',
+           'RepositoryTag', 'ContainerName',
            'Env', 'Port', 'PortBinding', 'VolumeMount', 'VolumeBinding',
            'ContainerLink', 'Cpuset',
            'Hostname', 'Domainname', 'MacAddress', 'Username',
            'HostnameIPMapping', 'VolumesFrom',
            'DeviceToAdd', 'Ulimit', 'LogConfiguration',
            'RegistryAuth', 'RegistryAuthConfig',
-           'RepositoryTag', 'ContainerName',
            'ContainerConfig', 'HostConfig']
 
 
@@ -62,6 +62,47 @@ class Parameter(object):
 
     def __str__(self):
         return str(self.json())
+
+
+class RepositoryTag(Parameter):
+
+    NAME_RE = re.compile(r'[a-z0-9-_.]+$')
+    TAG_RE = re.compile(r'[a-zA-Z0-9-_.]+$')
+    NAME_AND_TAG_RE = re.compile(r'(%s):(%s)?$' % (
+        NAME_RE.pattern[:-1], TAG_RE.pattern[:-1]))
+
+    def __init__(self, repo: str):
+        if self.NAME_RE.match(repo):
+            self.name = repo
+            self.tag = None
+            return
+        name_and_tag = self.NAME_AND_TAG_RE.match(repo)
+        if name_and_tag:
+            self.name = name_and_tag.group(1)
+            self.tag = name_and_tag.group(2)
+            return
+        raise ValueError('invalid repository name: %s' % repo)
+
+    def json(self, api_version: Optional[ApiVersion] = None):
+        if self.tag:
+            return "%s:%s" % (self.name, self.tag)
+        else:
+            return self.name
+
+
+class ContainerName(Parameter):
+
+    NAME_RE = re.compile(r'/?[a-zA-Z0-9_-]+$')
+
+    def __init__(self, name: str):
+
+        if self.NAME_RE.match(name):
+            self.name = name
+            return
+        raise ValueError('invalid container name: %s' % name)
+
+    def json(self, api_version: Optional[ApiVersion] = None):
+        return self.name
 
 
 class Env(Parameter):
@@ -362,47 +403,6 @@ class RegistryAuthConfig(object):
         for registry_auth in self.registry_auths:
             d.update(registry_auth.json(api_version))
         return d
-
-
-class RepositoryTag(Parameter):
-
-    NAME_RE = re.compile(r'[a-z0-9-_.]+$')
-    TAG_RE = re.compile(r'[a-zA-Z0-9-_.]+$')
-    NAME_AND_TAG_RE = re.compile(r'(%s):(%s)?$' % (
-        NAME_RE.pattern[:-1], TAG_RE.pattern[:-1]))
-
-    def __init__(self, repo: str):
-        if self.NAME_RE.match(repo):
-            self.name = repo
-            self.tag = None
-            return
-        name_and_tag = self.NAME_AND_TAG_RE.match(repo)
-        if name_and_tag:
-            self.name = name_and_tag.group(1)
-            self.tag = name_and_tag.group(2)
-            return
-        raise ValueError('invalid repository name: %s' % repo)
-
-    def json(self, api_version: Optional[ApiVersion] = None):
-        if self.tag:
-            return "%s:%s" % (self.name, self.tag)
-        else:
-            return self.name
-
-
-class ContainerName(Parameter):
-
-    NAME_RE = re.compile(r'/?[a-zA-Z0-9_-]+$')
-
-    def __init__(self, name: str):
-
-        if self.NAME_RE.match(name):
-            self.name = name
-            return
-        raise ValueError('invalid container name: %s' % name)
-
-    def json(self, api_version: Optional[ApiVersion] = None):
-        return self.name
 
 
 class ContainerConfig(Parameter):
