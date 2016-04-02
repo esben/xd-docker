@@ -24,7 +24,7 @@ __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
            'Env', 'Port', 'PortBinding', 'VolumeMount', 'VolumeBinding',
            'ContainerLink', 'Cpuset',
            'Hostname', 'Domainname', 'MacAddress', 'Username',
-           'HostnameIPMapping', 'VolumesFrom',
+           'HostnameIPMapping', 'VolumesFrom', 'RestartPolicy',
            'DeviceToAdd', 'Ulimit', 'LogConfiguration',
            'RegistryAuth', 'RegistryAuthConfig',
            'ContainerConfig', 'HostConfig']
@@ -332,6 +332,28 @@ class VolumesFrom(Parameter):
                               'ro' if self.ro else 'rw')
 
 
+class RestartPolicy(Parameter):
+    """Restart policy for when the container exits."""
+
+    def __init__(self, policy: str, maximum_retry_count: Optional[int] = None):
+        if policy not in ('always', 'unless-stopped', 'on-failure'):
+            raise ValueError('invalid policy value: %s' % policy)
+        self.policy = policy
+        if policy == 'on-failure':
+            if maximum_retry_count is None:
+                raise TypeError('RestartPolicy("on-failure")' +
+                                ' requires maximum_retry_count argument')
+            if maximum_retry_count < 0:
+                raise ValueError('maximum_retry_count must be positive')
+            self.maximum_retry_count = maximum_retry_count
+
+    def json(self, api_version: Optional[ApiVersion] = None):
+        d = {'Name': self.policy}
+        if self.policy == 'on-failure':
+            d['MaximumRetryCount'] = self.maximum_retry_count
+        return d
+
+
 class DeviceToAdd(Parameter):
     """Device to add to docker container."""
 
@@ -581,7 +603,7 @@ class HostConfig(object):
                      Union[VolumesFrom, str]]]=None,
                  cap_add: Optional[Sequence[str]]=None,
                  cap_drop: Optional[Sequence[str]]=None,
-                 restart_policy: Optional[Mapping[str, Union[str, int]]]=None,
+                 restart_policy: Optional[RestartPolicy]=None,
                  network_mode: Optional[str]=None,
                  devices: Optional[Sequence[DeviceToAdd]]=None,
                  ulimits: Optional[Sequence[Ulimit]]=None,
@@ -693,7 +715,8 @@ class HostConfig(object):
             cap_drop = list(cap_drop)
         self.cap_drop = cap_drop
         if restart_policy is not None:
-            restart_policy = dict(restart_policy)
+            if isinstance(restart_policy, str):
+                restart_policy = RestartPolicy(restart_policy)
         self.restart_policy = restart_policy
         self.network_mode = network_mode
         if devices is not None:

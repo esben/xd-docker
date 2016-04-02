@@ -618,6 +618,33 @@ class volumesfrom_tests(unittest.case.TestCase):
         assert vf.json() == 'foo:rw'
 
 
+class restartpolicy_tests(unittest.case.TestCase):
+
+    def test_always(self):
+        rp = RestartPolicy('always')
+        assert rp.json() == {'Name': 'always'}
+
+    def test_unless_stopped(self):
+        rp = RestartPolicy('unless-stopped')
+        assert rp.json() == {'Name': 'unless-stopped'}
+
+    def test_on_failure_42(self):
+        rp = RestartPolicy('on-failure', 42)
+        assert rp.json() == {'Name': 'on-failure', 'MaximumRetryCount': 42}
+
+    def test_on_failure_0(self):
+        rp = RestartPolicy('on-failure', 0)
+        assert rp.json() == {'Name': 'on-failure', 'MaximumRetryCount': 0}
+
+    def test_on_failure_no_arg(self):
+        with pytest.raises(TypeError):
+            RestartPolicy('on-failure')
+
+    def test_on_failure_negative(self):
+        with pytest.raises(ValueError):
+            RestartPolicy('on-failure', -1)
+
+
 class devicetoadd_tests(unittest.case.TestCase):
 
     def test_1_arg(self):
@@ -1486,3 +1513,28 @@ class hostconfig_tests(unittest.case.TestCase):
     def test_cap_drop_2(self):
         hc = HostConfig(cap_drop=['foo', 'bar'])
         assert hc.json() == {'CapDrop': ['foo', 'bar']}
+
+    def test_restart_policy_always(self):
+        hc = HostConfig(restart_policy='always')
+        assert hc.json(api_version=(1, 15)) == {
+            'RestartPolicy': {'Name': 'always'}}
+
+    def test_restart_policy_unless_stopped(self):
+        hc = HostConfig(restart_policy='unless-stopped')
+        assert hc.json(api_version=(1, 15)) == {
+            'RestartPolicy': {'Name': 'unless-stopped'}}
+
+    def test_restart_policy_on_failure_42(self):
+        hc = HostConfig(restart_policy=RestartPolicy('on-failure', 42))
+        assert hc.json(api_version=(1, 15)) == {
+            'RestartPolicy': {'Name': 'on-failure',
+                              'MaximumRetryCount': 42}}
+
+    def test_restart_policy_invalid(self):
+        with pytest.raises(ValueError):
+            HostConfig(restart_policy='foo')
+
+    def test_restart_policy_not_supported(self):
+        hc = HostConfig(restart_policy='always')
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 14))
