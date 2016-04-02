@@ -607,7 +607,7 @@ class volumesfrom_tests(unittest.case.TestCase):
 
     def test_default(self):
         vf = VolumesFrom('foo')
-        assert vf.json() == 'foo:rw'
+        assert vf.json() == 'foo'
 
     def test_ro(self):
         vf = VolumesFrom('foo', ro=True)
@@ -1442,6 +1442,26 @@ class hostconfig_tests(unittest.case.TestCase):
         hc = HostConfig(group_add=['foo'])
         with pytest.raises(ValueError):
             hc.json(api_version=(1, 19))
+
+    def test_volumes_from_empty(self):
+        hc = HostConfig(volumes_from=[])
+        assert hc.json() == {'VolumesFrom': []}
+
+    def test_volumes_from_str(self):
+        hc = HostConfig(volumes_from=['foo'])
+        assert hc.json() == {'VolumesFrom': ['foo']}
+
+    def test_volumes_from_instance_1(self):
+        hc = HostConfig(volumes_from=[VolumesFrom('foo')])
+        assert hc.json() == {'VolumesFrom': ['foo']}
+
+    def test_volumes_from_instance_ro(self):
+        hc = HostConfig(volumes_from=[VolumesFrom('foo', ro=True)])
+        assert hc.json() == {'VolumesFrom': ['foo:ro']}
+
+    def test_volumes_from_instance_rw(self):
+        hc = HostConfig(volumes_from=[VolumesFrom('foo', ro=False)])
+        assert hc.json() == {'VolumesFrom': ['foo:rw']}
 
     def test_cap_add_0(self):
         hc = HostConfig(cap_add=[])

@@ -317,12 +317,19 @@ class HostnameIPMapping(Parameter):
 class VolumesFrom(Parameter):
     """Docker container to inherit volumes from."""
 
-    def __init__(self, name: str, ro: bool = False):
+    def __init__(self, name: Union[ContainerName, str],
+                 ro: Optional[bool] = None):
+        if isinstance(name, str):
+            name = ContainerName(name)
         self.name = name
         self.ro = ro
 
     def json(self, api_version: Optional[ApiVersion] = None):
-        return '%s:%s' % (self.name, 'ro' if self.ro else 'rw')
+        if self.ro is None:
+            return self.name.json(api_version)
+        else:
+            return '%s:%s' % (self.name.json(api_version),
+                              'ro' if self.ro else 'rw')
 
 
 class DeviceToAdd(Parameter):
@@ -570,7 +577,8 @@ class HostConfig(object):
                  extra_hosts: Optional[Sequence[
                      Union[HostnameIPMapping, str]]]=None,
                  group_add: Optional[Sequence[str]]=None,
-                 volumes_from: Optional[Sequence[VolumesFrom]]=None,
+                 volumes_from: Optional[Sequence[
+                     Union[VolumesFrom, str]]]=None,
                  cap_add: Optional[Sequence[str]]=None,
                  cap_drop: Optional[Sequence[str]]=None,
                  restart_policy: Optional[Mapping[str, Union[str, int]]]=None,
@@ -673,6 +681,9 @@ class HostConfig(object):
         self.group_add = group_add
         if volumes_from is not None:
             volumes_from = list(volumes_from)
+            for index, vf in enumerate(volumes_from):
+                if isinstance(vf, str):
+                    volumes_from[index] = VolumesFrom(vf)
         self.volumes_from = volumes_from
         if cap_add is not None:
             cap_add = list(cap_add)
