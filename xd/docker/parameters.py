@@ -605,7 +605,8 @@ class HostConfig(object):
                  cap_drop: Optional[Sequence[str]]=None,
                  restart_policy: Optional[RestartPolicy]=None,
                  network_mode: Optional[str]=None,
-                 devices: Optional[Sequence[DeviceToAdd]]=None,
+                 devices: Optional[Sequence[
+                     Union[DeviceToAdd, str]]]=None,
                  ulimits: Optional[Sequence[Ulimit]]=None,
                  log_config: Optional[LogConfiguration]=None,
                  security_opt: Optional[Sequence[str]]=None,
@@ -721,6 +722,9 @@ class HostConfig(object):
         self.network_mode = network_mode
         if devices is not None:
             devices = list(devices)
+            for index, dev in enumerate(devices):
+                if isinstance(dev, str):
+                    devices[index] = DeviceToAdd(dev)
         self.devices = devices
         if ulimits is not None:
             ulimits = list(ulimits)
