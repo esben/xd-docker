@@ -43,5 +43,7 @@ script:
 after_success:
   - pip install coveralls codacy-coverage
   - coveralls
-  - test -n "$CODACY_PROJECT_TOKEN" &&
+  - test -n "$CODACY_PROJECT_TOKEN" -a
+         "$TEST_SUITE" = "unit" -a
+         "$TRAVIS_PYTHON_VERSION" = "3.5" &&
     python-codacy-coverage -r coverage.xml -c $TRAVIS_COMMIT
