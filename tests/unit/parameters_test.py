@@ -1538,3 +1538,110 @@ class hostconfig_tests(unittest.case.TestCase):
         hc = HostConfig(restart_policy='always')
         with pytest.raises(ValueError):
             hc.json(api_version=(1, 14))
+
+    def test_network_mode(self):
+        hc = HostConfig(network_mode='foo')
+        assert hc.json(api_version=(1, 15)) == {'NetworkMode': 'foo'}
+
+    def test_network_mode_not_supported(self):
+        hc = HostConfig(network_mode=['foo'])
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 14))
+
+    def test_devices_empty(self):
+        hc = HostConfig(devices=[])
+        assert hc.json(api_version=(1, 15)) == {'Devices': []}
+
+    def test_devices_str(self):
+        hc = HostConfig(devices=['/dev/foo'])
+        assert hc.json(api_version=(1, 15)) == {'Devices': [
+            {'PathOnHost': '/dev/foo',
+             'PathInContainer': '/dev/foo',
+             'CgroupPermissions': 'mrw'}]}
+
+    def test_devices_instance(self):
+        hc = HostConfig(devices=[DeviceToAdd('/dev/foo', '/dev/bar')])
+        assert hc.json(api_version=(1, 15)) == {'Devices': [
+            {'PathOnHost': '/dev/foo',
+             'PathInContainer': '/dev/bar',
+             'CgroupPermissions': 'mrw'}]}
+
+    def test_devices_not_supported(self):
+        hc = HostConfig(devices=['/dev/foo'])
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 14))
+
+    def test_ulimits_empty(self):
+        hc = HostConfig(ulimits=[])
+        assert hc.json(api_version=(1, 18)) == {'Ulimits': []}
+
+    def test_ulimits_instance(self):
+        hc = HostConfig(ulimits=[Ulimit('nofile', 1024, 2048)])
+        assert hc.json(api_version=(1, 18)) == {'Ulimits': [
+            {'Name': 'nofile',
+             'Soft': 1024,
+             'Hard': 2048}]}
+
+    def test_ulimits_not_supported(self):
+        hc = HostConfig(ulimits=[Ulimit('nofile', 1024, 2048)])
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 17))
+
+    def test_log_config(self):
+        hc = HostConfig(log_config=LogConfiguration('json-file'))
+        assert hc.json(api_version=(1, 18)) == {'LogConfig': {
+            'Type': 'json-file',
+            'Config': None}}
+
+    def test_log_config_not_supported(self):
+        hc = HostConfig(log_config=LogConfiguration('json-file'))
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 17))
+
+    def test_security_opt_empty(self):
+        hc = HostConfig(security_opt=[])
+        assert hc.json(api_version=(1, 17)) == {'SecurityOpt': []}
+
+    def test_security_opt_foo(self):
+        hc = HostConfig(security_opt=['foo'])
+        assert hc.json(api_version=(1, 17)) == {'SecurityOpt': ['foo']}
+
+    def test_security_opt_foobar(self):
+        hc = HostConfig(security_opt=['foo', 'bar'])
+        assert hc.json(api_version=(1, 17)) == {'SecurityOpt': ['foo', 'bar']}
+
+    def test_security_opt_not_supported(self):
+        hc = HostConfig(security_opt=[])
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 16))
+
+    def test_cgroup_parent_absolute(self):
+        hc = HostConfig(cgroup_parent='/foo')
+        assert hc.json(api_version=(1, 18)) == {'CgroupParent': '/foo'}
+
+    def test_cgroup_parent_relative(self):
+        hc = HostConfig(cgroup_parent='foo')
+        assert hc.json(api_version=(1, 18)) == {'CgroupParent': 'foo'}
+
+    def test_cgroup_parent_not_supported(self):
+        hc = HostConfig(cgroup_parent='/foo')
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 17))
+
+    def test_volume_driver_foo(self):
+        hc = HostConfig(volume_driver='foo')
+        assert hc.json(api_version=(1, 21)) == {'VolumeDriver': 'foo'}
+
+    def test_volume_driver_not_supported(self):
+        hc = HostConfig(volume_driver='foo')
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 20))
+
+    def test_shm_size_42(self):
+        hc = HostConfig(shm_size=42)
+        assert hc.json(api_version=(1, 22)) == {'ShmSize': 42}
+
+    def test_shm_size_not_supported(self):
+        hc = HostConfig(shm_size=42)
+        with pytest.raises(ValueError):
+            hc.json(api_version=(1, 21))
