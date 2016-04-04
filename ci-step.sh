@@ -16,6 +16,10 @@ case "$suite" in
 	flake8 --show-source --statistics --count xd/docker
 	;;
 
+    doc)
+	./docs/make.sh
+	;;
+
     *)
 	echo "Unknown test suite: $suite"
 	exit 1
