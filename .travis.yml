@@ -5,7 +5,7 @@ python:
 
 env:
   # Run unit test suite for all Python versions
-  - TEST_SUITE=unit
+  - CI_STEP=unit
 
 matrix:
   include:
@@ -14,21 +14,21 @@ matrix:
     # Python version provided by Alpine Linux anyway (see
     # tests/integration/Dockerfile)
     - python: 3.5
-      env: TEST_SUITE=integration DOCKER_VERSION=1.10
+      env: CI_STEP=integration DOCKER_VERSION=1.10
     - python: 3.5
-      env: TEST_SUITE=integration DOCKER_VERSION=1.9
+      env: CI_STEP=integration DOCKER_VERSION=1.9
     - python: 3.5
-      env: TEST_SUITE=integration DOCKER_VERSION=1.8
+      env: CI_STEP=integration DOCKER_VERSION=1.8
     - python: 3.5
-      env: TEST_SUITE=integration DOCKER_VERSION=1.7
+      env: CI_STEP=integration DOCKER_VERSION=1.7
     - python: 3.5
-      env: TEST_SUITE=integration DOCKER_VERSION=1.6
+      env: CI_STEP=integration DOCKER_VERSION=1.6
     # Docker HUB does not support 1.5 clients and older
     # https://forums.docker.com/t/docker-pull-deprecation-for-for-v1-5-clients
 
     # PEP8 checking
     - python: 3.5
-      env: TEST_SUITE=style
+      env: CI_STEP=style
 
 dist: trusty
 sudo: required
@@ -38,12 +38,12 @@ install:
   - pip install -r requirements.txt -r tests/requirements.txt
 
 script:
-  - ./ci-test.sh ${TEST_SUITE} --cov-report=xml
+  - ./ci-step.sh ${CI_STEP}
 
 after_success:
   - pip install coveralls codacy-coverage
   - coveralls
   - test -n "$CODACY_PROJECT_TOKEN" -a
-         "$TEST_SUITE" = "unit" -a
+         "$CI_STEP" = "unit" -a
          "$TRAVIS_PYTHON_VERSION" = "3.5" &&
     python-codacy-coverage -r coverage.xml -c $TRAVIS_COMMIT
