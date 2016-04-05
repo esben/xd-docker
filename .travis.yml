@@ -47,3 +47,28 @@ after_success:
          "$CI_STEP" = "unit" -a
          "$TRAVIS_PYTHON_VERSION" = "3.5" &&
     python-codacy-coverage -r coverage.xml -c $TRAVIS_COMMIT
+
+deploy:
+  # test pypi
+  - provider: pypi
+    distributions: sdist
+    server: https://testpypi.python.org/pypi
+    on:
+      python: 3.5
+      condition: $CI_STEP = "unit"
+      all_branches: true
+      tags: false
+    user: esbenhaabendal
+    password:
+      secure: "Z5ne7AJcxIjlgXPF4dJTQdyknJoSp14523cGv+xD0EIoO6E3KRAmgoRRBYFWFJJFjmaJsMSZP7EYOyuxZ4lagDasYbaVPbYthxDfArdrMDNzBmTW/2tioPo0JInr6eYxy0qS7MphsxX2HMuszpd0t9hnaT2I3WzcJjcqQTkDSZ4="
+
+  # production pypi
+  - provider: pypi
+    distributions: sdist bdist_wheel
+    on:
+      python: 3.5
+      condition: $CI_STEP = "unit"
+      tags: true
+    user: esbenhaabendal
+    password:
+      secure: "j3wZzZ737pAP2oLSc8vVqPhAsIfPdZPaNW6EaVLlefP0TzoDVCuuvAL5UgCCAtskhdgOc6fR7zWTscocsm0RedlLTUsY9x6LPAl4BqpxkveA2/0jTwEkD9KTCDRI6uPP4Ubb51dMlf3DUhhqX6xeNq1wN9AFhOy1NRF9ZZcs3CE="
