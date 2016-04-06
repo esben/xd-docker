@@ -49,6 +49,9 @@ after_success:
          "$TRAVIS_PYTHON_VERSION" = "3.5" &&
     python-codacy-coverage -r coverage.xml -c $TRAVIS_COMMIT
 
+before_deploy:
+  - git fetch --unshallow
+
 deploy:
   # test pypi
   - provider: pypi
