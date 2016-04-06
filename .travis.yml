@@ -37,12 +37,12 @@ services:
   - docker
 install:
   - pip install -r requirements.txt -r tests/requirements.txt
+      coveralls codacy-coverage
 
 script:
   - ./ci-step.sh ${CI_STEP}
 
 after_success:
-  - pip install coveralls codacy-coverage
   - coveralls
   - test -n "$CODACY_PROJECT_TOKEN" -a
          "$CI_STEP" = "unit" -a
