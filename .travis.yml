@@ -2,6 +2,7 @@ language: python
 python:
   - 3.4
   - 3.5
+cache: pip
 
 env:
   # Run unit test suite for all Python versions
