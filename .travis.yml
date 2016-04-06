@@ -34,8 +34,6 @@ dist: trusty
 sudo: required
 services:
   - docker
-install:
-  - pip install -r requirements.txt -r tests/requirements.txt
 
 script:
   - ./ci-step.sh ${CI_STEP}
