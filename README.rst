@@ -1,27 +1,22 @@
 XD Docker
 =========
 
-XD Docker client wrapper for Python 3.
+XD Docker aims at providing an easy to use and Pythonic API for working with
+the Docker Remote API in Python.
 
-The goal is to provide a functional, easy to use and Pythonic API for working
-with Docker in Python.
 
-## License
+Development status
+------------------
 
-XD Docker is released under the MIT License (see LICENSE file).
+This library is in a early development stage, with only limited functionality
+of the Docker Remote API implemented, and with no guarantees of API stability.
 
-## Test suites
+The functionality that is implemented, should be pretty stable though, with
+unit and integration tests in place.
 
-XD Docker includes both a unit test suite and an integration test suite.
 
-The goal of the unit test suite is to test each module, achieving 100% code
-and branch coverage.
+Documentation
+-------------
 
-The goal of the integration test suite is to test against different docker
-versions.
-
-The recommended way to run the test suites, is to use the shell scripts
-`unit-test.sh` and `integration-test.sh`.
-
-These scripts take care of building docker images with the necessary tools and
-software, and runs the test in docker containers.
+Documentation will be hosted on http://readthedocs.org when I have finished
+the setup for that.

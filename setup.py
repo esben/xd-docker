@@ -28,7 +28,7 @@ setup(
     name='xd-docker',
 
     # Short and long descriptions, will be displayed on PyPI.
-    description='A Docker Remote API Python library',
+    description='Python library for accessing Docker Remote API',
     long_description=long_description,
     url='https://github.com/XD-embedded/xd-docker',
     author='Esben Haabendal',
