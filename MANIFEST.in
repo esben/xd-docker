@@ -1,0 +1,7 @@
+include *.md
+include *.sh
+include *.txt
+include LICENSE
+recursive-include tests *.py
+recursive-include tests *.txt
+include tests/*/Dockerfile
