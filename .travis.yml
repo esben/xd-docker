@@ -51,12 +51,12 @@ after_success:
 deploy:
   # test pypi
   - provider: pypi
-    distributions: sdist
+    distributions: sdist bdist_wheel
     server: https://testpypi.python.org/pypi
     on:
       python: 3.5
       condition: $CI_STEP = "unit"
-      all_branches: true
+      branch: master
       tags: false
     user: esbenhaabendal
     password:
@@ -68,6 +68,7 @@ deploy:
     on:
       python: 3.5
       condition: $CI_STEP = "unit"
+      branch: master
       tags: true
     user: esbenhaabendal
     password:
