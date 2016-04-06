@@ -1,7 +1,7 @@
-XD Docker
+XD-Docker
 =========
 
-XD Docker aims at providing an easy to use and Pythonic API for working with
+XD-Docker aims at providing an easy to use and Pythonic API for working with
 the Docker Remote API in Python.
 
 

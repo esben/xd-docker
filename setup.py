@@ -25,7 +25,7 @@ def version_config():
 
 setup(
     # Name of project, see PEP 426
-    name='xd-docker',
+    name='XD-Docker',
 
     # Short and long descriptions, will be displayed on PyPI.
     description='Python library for accessing Docker Remote API',

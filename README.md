@@ -1,9 +1,9 @@
-XD Docker
+XD-Docker
 =========
 
 Python library for accessing Docker Remote API.
 
-XD Docker aims at providing an easy to use and Pythonic API for working with
+XD-Docker aims at providing an easy to use and Pythonic API for working with
 the Docker Remote API in Python.
 
 
@@ -21,13 +21,13 @@ Developer resources
 License
 -------
 
-XD Docker is released under the MIT License (see [LICENSE](LICENSE) file).
+XD-Docker is released under the MIT License (see [LICENSE](LICENSE) file).
 
 
 Test suites
 -----------
 
-XD Docker includes both a unit test suite and an integration test suite.
+XD-Docker includes both a unit test suite and an integration test suite.
 
 The goal of the unit test suite is to test each module, achieving 100% code
 and branch coverage.
