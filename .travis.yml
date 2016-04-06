@@ -30,6 +30,10 @@ matrix:
     - python: 3.5
       env: CI_STEP=style
 
+    # MANIFEST.in check
+    - python: 3.5
+      env: CI_STEP=manifest
+
 dist: trusty
 sudo: required
 services:

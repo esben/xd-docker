@@ -16,6 +16,11 @@ case "$suite" in
 	flake8 --show-source --statistics --count xd/docker
 	;;
 
+    manifest)
+	pip install check-manifest
+	check-manifest
+	;;
+
     *)
 	echo "Unknown test suite: $suite"
 	exit 1
