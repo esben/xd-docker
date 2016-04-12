@@ -2,6 +2,4 @@ xd.docker.image module
 ======================
 
 .. automodule:: xd.docker.image
-    :members:
-    :undoc-members:
-    :show-inheritance:
+    :special-members: __init__

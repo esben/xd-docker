@@ -31,6 +31,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
@@ -109,6 +111,10 @@ pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+# Autodoc configuration
+autodoc_member_order = 'bysource'
+autodoc_default_flags = ['members', 'show-inheritance']
 
 
 # -- Options for HTML output ----------------------------------------------
@@ -208,6 +214,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'XDDockerdoc'
+
 
 # -- Options for LaTeX output ---------------------------------------------
 
