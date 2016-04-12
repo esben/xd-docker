@@ -33,6 +33,19 @@ __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
 def json_update(obj: Dict[str, Any], values: Dict[str, Any],
                 json_fields: Sequence[Tuple[str, Tuple[int, int], str]],
                 api_version: Optional[ApiVersion] = None):
+    """Update JSON object (dict).
+
+    This function is used to update a JSON object (a dict) with name/value
+    pairs from the values argument, based on the specification in json_fields
+    and api_version arguments.
+
+    Arguments:
+      obj: JSON object to update.
+      values: Name/value pairs to update with.
+      json_fields: Specification of supported JSON object name/value pairs,
+        including information on which API version they are supported in.
+      api_version: API version to update for.
+    """
     for json_name, min_version, value_name in json_fields:
         if isinstance(values, dict):
             value = values.get(value_name)
@@ -59,19 +72,40 @@ def json_update(obj: Dict[str, Any], values: Dict[str, Any],
 
 
 class Parameter(object):
+    """Base class for all XD Docker parameter classes."""
 
     def __str__(self):
         return str(self.json())
 
+    def json(self, api_version: Optional[ApiVersion] = None):
+        """Return Docker Remote API JSON representation.
+
+        Arguments:
+          api_version: Docker Remote API version.
+        """
+        raise NotImplementedError
 
 
 class Repository(Parameter):
+    """Repository name (and optionally tag) parameter.
+
+    A Repository instance is used to represent a Docker repository name, or
+    repository name and tag.
+
+    Attributes:
+      name (str): Repository name.
+      tag (Optional[str]): Repository tag.
+    """
     NAME_RE = re.compile(r'[a-z0-9-_.]+$')
     TAG_RE = re.compile(r'[a-zA-Z0-9-_.]+$')
     NAME_AND_TAG_RE = re.compile(r'(%s):(%s)?$' % (
         NAME_RE.pattern[:-1], TAG_RE.pattern[:-1]))
 
     def __init__(self, repo: str):
+        """
+        Arguments:
+          repo: Repository name, or name and tag (separated by ':').
+        """
         if self.NAME_RE.match(repo):
             self.name = repo
             self.tag = None
@@ -91,11 +125,21 @@ class Repository(Parameter):
 
 
 class ContainerName(Parameter):
+    """Container name parameter.
+
+    A ContainerName instance is used to represent a Docker container name.
+
+    Attributes:
+      name (str): Container name.
+    """
 
     NAME_RE = re.compile(r'/?[a-zA-Z0-9_-]+$')
 
     def __init__(self, name: str):
-
+        """
+        Arguments:
+          name: Container name
+        """
         if self.NAME_RE.match(name):
             self.name = name
             return
@@ -106,11 +150,22 @@ class ContainerName(Parameter):
 
 
 class Env(Parameter):
-    """Container environment."""
+    """Environment variables.
+
+    An Environment instance contains the environment variables for a Docker
+    container.
+
+    Attributes:
+      env (Mapping[str, str]): Environment variables, name/value pairs.
+    """
 
     KEY_RE = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*$')
 
     def __init__(self, env: Optional[Mapping[str, str]]=None):
+        """
+        Arguments:
+          env: Environment variables, name/value pairs.
+        """
         self.env = env
         if env:
             for k in env:
@@ -128,9 +183,21 @@ class Env(Parameter):
 
 
 class Port(Parameter):
-    """Network port."""
+    """Network port.
+
+    A Port instance represents a network port (TCP or UDP).
+
+    Attributes:
+      port (int): Port number.
+      protocol (str): Protocol ('tcp' or 'udp').
+    """
 
     def __init__(self, port: int, protocol: str = 'tcp'):
+        """
+        Arguments:
+          port: Port number.
+          protocol: Protocol ('tcp' or 'udp').
+        """
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -143,11 +210,28 @@ class Port(Parameter):
 
 
 class PortBinding(Parameter):
-    """Docker container port binding."""
+    """Docker container port binding.
+
+    A PortBinding instance represents a binding of a network port of a Docker
+    container to a host port.
+
+    Attributes:
+      port (int): Container port number (1 ... 65535).
+      protocol (str): Protocol ('tcp' or 'udp').
+      host_ip (Optional[IPAddress]): Host IP address.
+      host_port (int): Host port number (1 ... 65535).
+    """
 
     def __init__(self, port: int, protocol: str = 'tcp',
                  host_ip: Optional[IPAddress] = None,
                  host_port: Optional[int] = None):
+        """
+        Arguments:
+          port: Container port number.
+          protocol: Protocol ('tcp' or 'udp').
+          host_ip: Host IP address.
+          host_port: Host port number (defaults to container port number).
+        """
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -169,9 +253,26 @@ class PortBinding(Parameter):
 
 
 class VolumeMount(Parameter):
+    """Volume mount point.
 
+    A VolumeMount instance represents a container mount point of a host
+    directory.
+
+    Attributes:
+      source (str): Host path.
+      destination (str): Container path.
+      ro (bool): Read-only mount.
+      label_mode (str): SELinux label mode ('', 'z', or 'Z').
+    """
     def __init__(self, source: str, destination: str, ro: bool = False,
                  label_mode: Optional[str] = None):
+        """
+        Arguments:
+          source: Host path.
+          destination: Container path.
+          ro: Read-only mount.
+          label_mode: SELinux label mode ('z' or 'Z').
+        """
         self.source = source
         self.destination = destination
         self.ro = ro
@@ -438,27 +539,27 @@ class ContainerConfig(Parameter):
     """Docker container configuration.
 
     Arguments:
-    image -- image create container from
-    command -- command to run (string or list of strings)
-    entrypoint -- container entrypoint (string or list of strings)
-    on_build -- trigger instructions to be executed later (list of strings)
-    hostname -- hostname to use for the container
-    domainname -- domain name to use for the container
-    user -- user inside the container (user name)
-    attach_stdin -- attach to stdin (boolean)
-    attach_stdout -- attach to stdout (boolean)
-    attach_stderr -- attach to stderr (boolean)
-    tty -- attach standard streams to a tty (boolean)
-    open_stdin -- open stdin (boolean)
-    stdin_once -- close stdin after the client disconnects (boolean)
-    env -- environment variables (dict)
-    labels -- labels to set on container (dict)
-    working_dir -- working directory for command to run in (string)
-    mac_address -- MAC address (string)
-    network -- whether to enable networking in the container (boolean)
-    exposed_ports -- exposed ports (list of ports)
-    volumes -- FIXME
-    stop_signal -- signal to stop container (int or string)
+      image: Image create container from
+      command: Command to run (string or list of strings)
+      entrypoint: Container entrypoint (string or list of strings)
+      on_build: Trigger instructions to be executed later (list of strings)
+      hostname: Hostname to use for the container
+      domainname: Domain name to use for the container
+      user: User inside the container (user name)
+      attach_stdin: Attach to stdin (boolean)
+      attach_stdout: Attach to stdout (boolean)
+      attach_stderr: Attach to stderr (boolean)
+      tty: Attach standard streams to a tty (boolean)
+      open_stdin: Open stdin (boolean)
+      stdin_once: Close stdin after the client disconnects (boolean)
+      env: Environment variables (dict)
+      labels: Labels to set on container (dict)
+      working_dir: Working directory for command to run in (string)
+      mac_address: MAC address (string)
+      network: Whether to enable networking in the container (boolean)
+      exposed_ports: Exposed ports (list of ports)
+      volumes: FIXME
+      stop_signal: Signal to stop container (int or string)
     """
 
     # TODO: Figure out how to handle Mounts and Volumes parameters.  It seems
