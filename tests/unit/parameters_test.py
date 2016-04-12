@@ -725,23 +725,23 @@ class registryauthconfig_tests(unittest.case.TestCase):
             'docker.example.com': {'username': 'you', 'password': 'public'}}
 
 
-class repositorytag_tests(unittest.case.TestCase):
+class repository_tests(unittest.case.TestCase):
 
     def test_name(self):
-        tag = RepositoryTag('foo')
+        tag = Repository('foo')
         assert tag.json() == 'foo'
 
     def test_name_and_tag(self):
-        tag = RepositoryTag('foo:bar')
+        tag = Repository('foo:bar')
         assert tag.json() == 'foo:bar'
 
     def test_empty(self):
         with pytest.raises(ValueError):
-            RepositoryTag('')
+            Repository('')
 
     def test_invalid_1(self):
         with pytest.raises(ValueError):
-            RepositoryTag('foo:bar:x')
+            Repository('foo:bar:x')
 
 
 class containername_tests(unittest.case.TestCase):

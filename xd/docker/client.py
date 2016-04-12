@@ -17,7 +17,7 @@ from typing import Optional, Union, Sequence, Dict
 from xd.docker.container import Container
 from xd.docker.image import Image
 from xd.docker.parameters import ContainerConfig, HostConfig, ContainerName, \
-    RepositoryTag, RegistryAuthConfig, VolumeMount, json_update
+    Repository, RegistryAuthConfig, VolumeMount, json_update
 
 import logging
 log = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ class DockerClient(object):
     def image_build(self, context: str,
                     output=('error', 'stream', 'status'),
                     dockerfile: Optional[str]=None,
-                    tag: Optional[Union[RepositoryTag, str]]=None,
+                    tag: Optional[Union[Repository, str]]=None,
                     cache: bool=True,
                     pull: Optional[bool]=None,
                     rm: Optional[bool]=None,
@@ -221,7 +221,7 @@ class DockerClient(object):
 
         # Handle convenience argument types
         if isinstance(tag, str):
-            tag = RepositoryTag(tag)
+            tag = Repository(tag)
 
         # TODO: take from HostConfig:
         # memory

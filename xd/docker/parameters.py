@@ -20,7 +20,7 @@ ApiVersion = Tuple[int, int]
 __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
            'json_update',
            'Parameter',
-           'RepositoryTag', 'ContainerName',
+           'Repository', 'ContainerName',
            'Env', 'Port', 'PortBinding', 'VolumeMount', 'VolumeBinding',
            'ContainerLink', 'Cpuset',
            'Hostname', 'Domainname', 'MacAddress', 'Username',
@@ -64,8 +64,8 @@ class Parameter(object):
         return str(self.json())
 
 
-class RepositoryTag(Parameter):
 
+class Repository(Parameter):
     NAME_RE = re.compile(r'[a-z0-9-_.]+$')
     TAG_RE = re.compile(r'[a-zA-Z0-9-_.]+$')
     NAME_AND_TAG_RE = re.compile(r'(%s):(%s)?$' % (
