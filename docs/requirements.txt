@@ -1,5 +1,5 @@
-sphinx
+sphinx>=1.4
+sphinx-autodoc-typehints>=1.0.4
 sphinx-autobuild
-sphinx-autodoc-typehints
 sphinx_rtd_theme
 setuptools_scm
