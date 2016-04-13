@@ -435,7 +435,7 @@ class Domainname(Hostname):
         return self.domainname
 
 
-class MacAddress(Hostname):
+class MacAddress(Parameter):
     """Ethernet MAC address."""
 
     MACADDRESS_RE = re.compile('[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$')
@@ -449,7 +449,7 @@ class MacAddress(Hostname):
         return self.addr
 
 
-class Username(Hostname):
+class Username(Parameter):
     """User name."""
 
     USERNAME_RE = re.compile(r'[a-z0-9][a-z0-9_-]*$')
