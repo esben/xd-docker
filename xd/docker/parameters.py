@@ -255,15 +255,15 @@ class PortBinding(Parameter):
 class VolumeMount(Parameter):
     """Volume mount point.
 
-    A VolumeMount instance represents a container mount point of a host
-    directory.
+    A VolumeMount instance represents a container mount point.
 
     Attributes:
-      source (str): Host path.
-      destination (str): Container path.
+      source (str): Source path.
+      destination (str): Destination path.
       ro (bool): Read-only mount.
       label_mode (str): SELinux label mode ('', 'z', or 'Z').
     """
+
     def __init__(self, source: str, destination: str, ro: bool = False,
                  label_mode: Optional[str] = None):
         """
@@ -289,36 +289,67 @@ class VolumeMount(Parameter):
 
 
 class VolumeBinding(Parameter):
-    """Docker container volume binding."""
+    """Volume binding.
 
-    def __init__(self, container_path: str, host_path: Optional[str] = None,
+    A VolumeBinding instance represents a volume binding for a container.  The
+    binding can either be to a new volume, an existing host path, or a volume
+    provided by a Docker volume plugin.
+
+    Attributes:
+      container_path (str): Container path to bind the volume to.
+      volume (Optional[str]): Host path or volume name, identifying the volume
+        to bind to.
+      ro (bool): Read-only mount.
+    """
+
+    def __init__(self, container_path: str, volume: Optional[str] = None,
                  ro: bool = False):
+        """
+        Arguments:
+          container_path: Container path to bind the volume to.
+          volume: Host path or volume name, identifying the volume
+            to bind to.  Host path must start with a '/'.  Volume name must
+            not begin with a '/'.
+          ro: Read-only mount.
+        """
         if container_path == '':
             raise ValueError('invalid container_path')
-        if host_path == '':
-            raise ValueError('invalid host_path')
-        if ro and not host_path:
-            raise ValueError('host_path required when ro=True')
+        if volume == '':
+            raise ValueError('invalid volume')
+        if ro and not volume:
+            raise ValueError('volume required when ro=True')
         self.container_path = container_path
-        if host_path is None:
-            self.host_path = None
+        if volume is None:
+            self.volume = None
         else:
-            self.host_path = host_path
+            self.volume = volume
         self.ro = ro
 
     def json(self, api_version: Optional[ApiVersion] = None):
-        if not self.host_path:
+        if not self.volume:
             return self.container_path
         if self.ro:
-            return '%s:%s:ro' % (self.host_path, self.container_path)
+            return '%s:%s:ro' % (self.volume, self.container_path)
         else:
-            return '%s:%s' % (self.host_path, self.container_path)
+            return '%s:%s' % (self.volume, self.container_path)
 
 
 class ContainerLink(Parameter):
-    """Docker container link."""
+    """Container link.
+
+    A ContainerLink instance represents a link to another container.
+
+    Attributes:
+      name (str): Name of container to link to.
+      alias (str): Alias to use for linked container.
+    """
 
     def __init__(self, name: str, alias: str):
+        """
+        Arguments:
+          name: Name of container to link to.
+          alias: Alias to use for linked container.
+        """
         self.name = name
         self.alias = alias
 
@@ -327,11 +358,24 @@ class ContainerLink(Parameter):
 
 
 class Cpuset(Parameter):
-    """List of CPUs or memory nodes."""
+    """List of CPUs.
+
+    A Cpuset instance represents a set of CPU or memory nodes, for use when
+    specifying where to run a container.
+
+    Attributes:
+      cpuset (str): Cpuset specification.
+    """
 
     CPUSET_LIST_RE = re.compile(r'(\d|[1-9]\d+)([,-](\d|[1-9]\d+))*$')
 
     def __init__(self, cpuset: str):
+        """
+        Arguments:
+          cpuset: Cpuset specification.  See `cpuset(7)`_ for syntax.
+
+        .. _cpuset(7): http://man7.org/linux/man-pages/man7/cpuset.7.html
+        """
         if not self.CPUSET_LIST_RE.match(cpuset):
             raise ValueError('invalid cpuset: %s' % cpuset)
         self.cpuset = cpuset
@@ -341,11 +385,23 @@ class Cpuset(Parameter):
 
 
 class Hostname(Parameter):
-    """Hostname."""
+    """Hostname.
+
+    A Hostname instance represents a network hostname.  A hostname must not
+    contain dots ('.').  To specify a fully qualified domain name, use
+    :class:`.Domainname`.
+
+    Attributes:
+      hostname (str): Hostname.
+    """
 
     HOSTNAME_RE = re.compile(r'[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
 
     def __init__(self, hostname: str):
+        """
+        Arguments:
+          hostname: Hostname.
+        """
         if not self.HOSTNAME_RE.match(hostname):
             raise ValueError('invalid hostname: %s' % hostname)
         self.hostname = hostname
@@ -355,12 +411,22 @@ class Hostname(Parameter):
 
 
 class Domainname(Hostname):
-    """Domain name."""
+    """Domain name.
+
+    A Domainname instance represents a network domain name.
+
+    Attributes:
+      domainname (str): Domain name.
+    """
 
     DOMAINNAME_RE = re.compile('%s(\.%s)*$' % (
         Hostname.HOSTNAME_RE.pattern[:-1], Hostname.HOSTNAME_RE.pattern[:-1]))
 
     def __init__(self, domainname: str):
+        """
+        Arguments:
+          domainname: Domain name.
+        """
         if not self.DOMAINNAME_RE.match(domainname):
             raise ValueError('invalid domainname: %s' % domainname)
         self.domainname = domainname
