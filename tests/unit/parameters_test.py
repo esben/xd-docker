@@ -5,6 +5,14 @@ import ipaddress
 from xd.docker.parameters import *
 
 
+class parameter_tests(unittest.case.TestCase):
+
+    def test_notimplemented(self):
+        p = Parameter()
+        with pytest.raises(NotImplementedError):
+            p.json()
+
+
 class env_tests(unittest.case.TestCase):
 
     def test_no_arg(self):
