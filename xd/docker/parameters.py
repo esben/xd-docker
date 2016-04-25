@@ -437,11 +437,21 @@ class Domainname(Hostname):
 
 
 class MacAddress(Parameter):
-    """Ethernet MAC address."""
+    """Ethernet MAC address.
+
+    A MacAddress instance represents an Ethernet MAC address.
+
+    Attributes:
+      addr (str): MAC address (fx. '01:02:03:04:05:06').
+    """
 
     MACADDRESS_RE = re.compile('[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$')
 
     def __init__(self, addr: str):
+        """
+        Arguments:
+          addr: MAC address (fx. '01:02:03:04:05:06').
+        """
         if not self.MACADDRESS_RE.match(addr):
             raise ValueError('invalid MAC address: %s' % addr)
         self.addr = addr
@@ -451,11 +461,21 @@ class MacAddress(Parameter):
 
 
 class Username(Parameter):
-    """User name."""
+    """User name.
+
+    A Username instance represents a UNIX user name.
+
+    Attributes:
+      username (str): User name.
+    """
 
     USERNAME_RE = re.compile(r'[a-z0-9][a-z0-9_-]*$')
 
     def __init__(self, username: str):
+        """
+        Arguments:
+          username: User name.
+        """
         if not self.USERNAME_RE.match(username):
             raise ValueError('invalid username: %s' % username)
         self.username = username
@@ -465,10 +485,23 @@ class Username(Parameter):
 
 
 class HostnameIPMapping(Parameter):
-    """Hostname to IP address mapping."""
+    """Hostname to IP address mapping.
+
+    A HostnameIPMapping instance represents a mapping from a hostname to an IP
+    address (IPv6 or IPv4).
+
+    Attributes:
+      hostname (Hostname): Hostname.
+      ip (IPAddress): IP address.
+    """
 
     def __init__(self, hostname: Union[Hostname, str],
                  ip: Union[IPAddress, str]):
+        """
+        Arguments:
+          hostname: Hostname.
+          ip: IP address.
+        """
         if isinstance(hostname, Hostname):
             self.hostname = hostname
         else:
@@ -483,10 +516,23 @@ class HostnameIPMapping(Parameter):
 
 
 class VolumesFrom(Parameter):
-    """Docker container to inherit volumes from."""
+    """Docker container to inherit volumes from.
+
+    A VolumesFrom instance represents a single docker container to inherit
+    volumes from.
+
+    Attributes:
+      name (ContainerName): Container name.
+      ro (Optional[bool]): Mount volumes read-only.
+    """
 
     def __init__(self, name: Union[ContainerName, str],
                  ro: Optional[bool] = None):
+        """
+        Arguments:
+          name: Container name.
+          ro: Mount volumes read-only (default is read/write).
+        """
         if isinstance(name, str):
             name = ContainerName(name)
         self.name = name
@@ -501,9 +547,24 @@ class VolumesFrom(Parameter):
 
 
 class RestartPolicy(Parameter):
-    """Restart policy for when the container exits."""
+    """Restart policy for when the container exits.
+
+    A RestartPolicy instance represents the restart policy to use when
+    container exits.
+
+    Attributes:
+      policy (str): One of 'always', 'unless-stopped', or 'on-failure'.
+      maximum_retry_count (int): Number of times to retry before giving up
+        (only present when policy is 'on-failure').
+    """
 
     def __init__(self, policy: str, maximum_retry_count: Optional[int] = None):
+        """
+        Arguments:
+          policy: One of 'always', 'unless-stopped', or 'on-failure.
+          maximum_retry_count: Number of times to retry before giving up
+            (required and only allowed together with 'on-failure')
+        """
         if policy not in ('always', 'unless-stopped', 'on-failure'):
             raise ValueError('invalid policy value: %s' % policy)
         self.policy = policy
@@ -523,11 +584,28 @@ class RestartPolicy(Parameter):
 
 
 class DeviceToAdd(Parameter):
-    """Device to add to docker container."""
+    """Device to add to container.
+
+    A DeviceToAdd instance represents a device to add to a container.
+
+    Attributes:
+      path_on_host (str): Device path on host.
+      path_in_container (str): Device path in container.
+      cgroup_permissions (str): Access permission, composition of 'r' (read),
+        'w' (write), and 'm' (mknod).
+    """
 
     def __init__(self, path_on_host: str,
                  path_in_container: Optional[str] = None,
                  cgroup_permissions: str = 'rwm'):
+        """
+        Arguments:
+          path_on_host: Device path on host.
+          path_in_container: Device path in container (defaults to
+            path_on_host).
+          cgroup_permissions: Access permission, composition of 'r' (read),
+            'w' (write), and 'm' (mknod) (defaults to 'rwm').
+        """
         self.path_on_host = path_on_host
         if path_in_container is None:
             path_in_container = path_on_host
@@ -541,9 +619,23 @@ class DeviceToAdd(Parameter):
 
 
 class Ulimit(Parameter):
-    """Ulimit setting."""
+    """Ulimit parameter.
+
+    A Ulimit instance represents a ulimit (user limit) to set in a container.
+
+    Attributes:
+      name (str): Name of ulimit.
+      soft (str): Soft limit.
+      hard (str): Hard limit.
+    """
 
     def __init__(self, name: str, soft: int, hard: Optional[int] = None):
+        """
+        Arguments:
+          name: Name of ulimit.
+          soft: Soft limit.
+          hard: Hard limit (defaults to soft limit).
+        """
         self.name = name
         self.soft = soft
         if hard is None:
@@ -557,12 +649,25 @@ class Ulimit(Parameter):
 
 
 class LogConfiguration(Parameter):
-    """Docker container log configuration."""
+    """Log configuration for container.
+
+    A LogConfiguration instance represents configuration of how logging is
+    done for a container.
+
+    Attributes:
+      type (str): Logging driver name.
+      config (Dict[str, str]): Driver specific configuration parameters.
+    """
 
     AVAILABLE_TYPES = (
         'json-file', 'syslog', 'journald', 'gelf', 'awslogs', 'none')
 
     def __init__(self, type: str, config: Optional[Mapping[str, str]]=None):
+        """
+        Arguments:
+          type: Logging driver name.
+          config: Driver specific configuration parameters.
+        """
         if type not in self.AVAILABLE_TYPES:
             raise ValueError("invalid type: " + type)
         self.type = type
