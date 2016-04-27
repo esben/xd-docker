@@ -659,13 +659,13 @@ class devicetoadd_tests(unittest.case.TestCase):
         dta = DeviceToAdd('/foo')
         assert dta.json() == {'PathOnHost': '/foo',
                               'PathInContainer': '/foo',
-                              'CgroupPermissions': 'mrw'}
+                              'CgroupPermissions': 'rwm'}
 
     def test_2_args(self):
         dta = DeviceToAdd('/foo', '/bar')
         assert dta.json() == {'PathOnHost': '/foo',
                               'PathInContainer': '/bar',
-                              'CgroupPermissions': 'mrw'}
+                              'CgroupPermissions': 'rwm'}
 
     def test_cgroup(self):
         dta = DeviceToAdd('/foo', cgroup_permissions='rw')
@@ -1565,14 +1565,14 @@ class hostconfig_tests(unittest.case.TestCase):
         assert hc.json(api_version=(1, 15)) == {'Devices': [
             {'PathOnHost': '/dev/foo',
              'PathInContainer': '/dev/foo',
-             'CgroupPermissions': 'mrw'}]}
+             'CgroupPermissions': 'rwm'}]}
 
     def test_devices_instance(self):
         hc = HostConfig(devices=[DeviceToAdd('/dev/foo', '/dev/bar')])
         assert hc.json(api_version=(1, 15)) == {'Devices': [
             {'PathOnHost': '/dev/foo',
              'PathInContainer': '/dev/bar',
-             'CgroupPermissions': 'mrw'}]}
+             'CgroupPermissions': 'rwm'}]}
 
     def test_devices_not_supported(self):
         hc = HostConfig(devices=['/dev/foo'])

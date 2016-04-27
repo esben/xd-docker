@@ -526,7 +526,7 @@ class DeviceToAdd(Parameter):
 
     def __init__(self, path_on_host: str,
                  path_in_container: Optional[str] = None,
-                 cgroup_permissions: str = 'mrw'):
+                 cgroup_permissions: str = 'rwm'):
         self.path_on_host = path_on_host
         if path_in_container is None:
             path_in_container = path_on_host
