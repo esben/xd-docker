@@ -718,7 +718,7 @@ class ContainerConfig(Parameter):
                  network: bool=True,
                  mac_address: Optional[Union[MacAddress, str]]=None,
                  exposed_ports: Optional[Sequence[Port]]=None,
-                 volumes: Optional[Sequence[Mapping[str, str]]]=None,
+                 volumes: Optional[Sequence[str]]=None,
                  stop_signal: Optional[Union[int, str]]=None):
         self.image = image
         self.command = command
@@ -762,6 +762,12 @@ class ContainerConfig(Parameter):
         else:
             return None
 
+    @property
+    def volumes_map(self):
+        if self.volumes is None:
+            return None
+        return {volume: {} for volume in self.volumes}
+
     JSON_FIELDS = (
         ('Image', (1, 14), 'image'),
         ('Cmd', (1, 14), 'command'),
@@ -782,7 +788,7 @@ class ContainerConfig(Parameter):
         ('NetworkDisabled', (1, 14), 'network_disabled'),
         ('MacAddress', (1, 15), 'mac_address'),
         ('ExposedPorts', (1, 14), 'exposed_ports'),
-        ('Volumes', (1, 14), 'volumes'),
+        ('Volumes', (1, 14), 'volumes_map'),
         ('StopSignal', (1, 21), 'stop_signal'),
     )
 

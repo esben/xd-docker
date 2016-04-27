@@ -981,6 +981,16 @@ class containerconfig_tests(unittest.case.TestCase):
         with pytest.raises(ValueError):
             cc.json(api_version=(1, 14))
 
+    def test_volumes_1(self):
+        cc = ContainerConfig('foo', volumes=['/foo'])
+        assert cc.json() == {'Image': 'foo',
+                             'Volumes': {'/foo': {}}}
+
+    def test_volumes_2(self):
+        cc = ContainerConfig('foo', volumes=['/foo', '/bar'])
+        assert cc.json() == {'Image': 'foo',
+                             'Volumes': {'/foo': {}, '/bar': {}}}
+
 
 class hostconfig_tests(unittest.case.TestCase):
 
