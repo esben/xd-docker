@@ -704,12 +704,20 @@ class logconfiguration_tests(unittest.case.TestCase):
             LogConfiguration('foobar')
 
 
-class registryauth_tests(unittest.case.TestCase):
+class authconfig_tests(unittest.case.TestCase):
 
-    def test_default(self):
-        ra = RegistryAuth('https://index.docker.io/v1/', 'me', 'secret')
-        assert ra.json() == {'https://index.docker.io/v1/': {
-            'username': 'me', 'password': 'secret'}}
+    def test_credential_without_email(self):
+        ac = CredentialAuthConfig('me', 'secret')
+        assert ac.json() == {'username': 'me', 'password': 'secret'}
+
+    def test_credential_with_email(self):
+        ac = CredentialAuthConfig('me', 'secret', 'me@domain.com')
+        assert ac.json() == {'username': 'me', 'password': 'secret',
+                             'email': 'me@domain.com'}
+
+    def test_token(self):
+        ac = TokenAuthConfig('foobar')
+        assert ac.json() == {'registrytoken': 'foobar'}
 
 
 class registryauthconfig_tests(unittest.case.TestCase):
@@ -718,19 +726,27 @@ class registryauthconfig_tests(unittest.case.TestCase):
         rac = RegistryAuthConfig([])
         assert rac.json() == {}
 
-    def test_1(self):
-        rac = RegistryAuthConfig([
-            RegistryAuth('https://index.docker.io/v1/', 'me', 'secret')])
+    def test_1_cred(self):
+        rac = RegistryAuthConfig({'https://index.docker.io/v1/':
+                                  CredentialAuthConfig('me', 'secret')})
         assert rac.json() == {'https://index.docker.io/v1/': {
             'username': 'me', 'password': 'secret'}}
 
-    def test_2(self):
-        rac = RegistryAuthConfig([
-            RegistryAuth('https://index.docker.io/v1/', 'me', 'secret'),
-            RegistryAuth('docker.example.com', 'you', 'public')])
+    def test_2_cred(self):
+        rac = RegistryAuthConfig({'https://index.docker.io/v1/':
+                                  CredentialAuthConfig('me', 'secret'),
+                                  'docker.example.com':
+                                  CredentialAuthConfig('you', 'public')})
         assert rac.json() == {
-            'https://index.docker.io/v1/': {'username': 'me', 'password': 'secret'},
+            'https://index.docker.io/v1/': {
+                'username': 'me', 'password': 'secret'},
             'docker.example.com': {'username': 'you', 'password': 'public'}}
+
+    def test_1_token(self):
+        rac = RegistryAuthConfig({
+            'https://index.docker.io/v1/': TokenAuthConfig('foobar')})
+        assert rac.json() == {'https://index.docker.io/v1/': {
+            'registrytoken': 'foobar'}}
 
 
 class repository_tests(unittest.case.TestCase):

@@ -26,7 +26,8 @@ __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
            'Hostname', 'Domainname', 'MacAddress', 'Username',
            'HostnameIPMapping', 'VolumesFrom', 'RestartPolicy',
            'DeviceToAdd', 'Ulimit', 'LogConfiguration',
-           'RegistryAuth', 'RegistryAuthConfig',
+           'AuthConfig', 'CredentialAuthConfig', 'TokenAuthConfig',
+           'RegistryAuthConfig',
            'ContainerConfig', 'HostConfig']
 
 
@@ -574,31 +575,95 @@ class LogConfiguration(Parameter):
         return {'Type': self.type, 'Config': self.config}
 
 
-class RegistryAuth(object):
-    """Docker registry authentication for a single registry."""
+class AuthConfig(Parameter):
+    """Login information for a docker registry.
 
-    def __init__(self, url: str, username: str, password: str):
-        self.url = url
+    An AuthConfig instance represents login information for authenticating to
+    a docker repository.
+    """
+
+
+class CredentialAuthConfig():
+    """Credential based login information for a docker registry.
+
+    A CredentialAuthConfig instance represents credential based login
+    information for authenticating to a docker repository.
+
+    Attributes:
+      username (str): User name.
+      password (str): Password.
+      email (Optional[str]): Email address.
+    """
+
+    def __init__(self, username: str, password: str,
+                 email: Optional[str] = None):
+        """
+        Arguments:
+          username: User name.
+          password: Password.
+          email: Email address.
+        """
         self.username = username
         self.password = password
+        self.email = email
 
     def json(self, api_version: Optional[Tuple[int, int]]=None):
-        return {self.url: {
-            'username': self.username,
-            'password': self.password}}
+        obj = {'username': self.username,
+               'password': self.password}
+        if self.email:
+            obj['email'] = self.email
+        return obj
 
 
-class RegistryAuthConfig(object):
-    """Docker registry authentication configuration."""
+class TokenAuthConfig(object):
+    """Token based login information for a docker registry.
 
-    def __init__(self, registry_auths: Sequence[RegistryAuth]):
-        self.registry_auths = registry_auths
+    A TokenAuthConfig instance represents token based login information for
+    authenticating to a docker repository.
+
+    Attributes:
+      token (str): Login token.
+    """
+
+    def __init__(self, token: str):
+        """
+        Arguments:
+          token: Login token.
+        """
+        self.token = token
 
     def json(self, api_version: Optional[Tuple[int, int]]=None):
-        d = {}
-        for registry_auth in self.registry_auths:
-            d.update(registry_auth.json(api_version))
-        return d
+        return {'registrytoken': self.token}
+
+
+class RegistryAuthConfig(Parameter):
+    """Docker registry authentication configuration.
+
+    A RegistryAuthConfig instance represents the login information for one or
+    more docker registries.
+
+    Attributes:
+      registry_auths: Mapping of registry hostnames to login information.
+    """
+
+    def __init__(self, registry_auths: Mapping[str, AuthConfig]):
+        """
+        Arguments:
+          registry_auths: Mapping of registry hostnames to the login
+            information for authenticating to that registry. Only the registry
+            domain name (and port if not the default "443") are
+            required. However (for legacy reasons) the "official" Docker,
+            Inc. hosted registry must be specified with both a "https://"
+            prefix and a "/v1/" suffix even though Docker will prefer to use
+            the v2 registry API.
+        """
+        self.registry_auths = dict(registry_auths)
+
+    def json(self, api_version: Optional[Tuple[int, int]]=None):
+        obj = {}
+        for hostname, auth_config in self.registry_auths.items():
+            obj[hostname] = auth_config.json(api_version)
+        return obj
 
 
 class ContainerConfig(Parameter):

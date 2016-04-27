@@ -578,12 +578,12 @@ RUN echo Hello world
 ''', 200)
         with contextlib.redirect_stdout(out):
             self.assertEqual(self.client.image_build(
-                self.context, registry_config=RegistryAuthConfig([
-                    RegistryAuth("https://index.docker.io/v1/",
-                                 "myusername", "mypassword"),
-                    RegistryAuth("docker.example.com",
-                                 "othername", "otherpassword")
-                    ])), 'e4d9194b48f8')
+                self.context, registry_config=RegistryAuthConfig({
+                    "https://index.docker.io/v1/":
+                    CredentialAuthConfig("myusername", "mypassword"),
+                    "docker.example.com":
+                    CredentialAuthConfig("othername", "otherpassword")
+                })), 'e4d9194b48f8')
         self.assertRegex(out.getvalue(), '''\
 Step 0 : FROM debian:jessie
  ---> [0-9a-f]+
