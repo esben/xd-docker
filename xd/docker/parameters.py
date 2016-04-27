@@ -93,6 +93,9 @@ class Repository(Parameter):
     A Repository instance is used to represent a Docker repository name, or
     repository name and tag.
 
+    Arguments:
+      repo: Repository name, or name and tag (separated by ':').
+
     Attributes:
       name (str): Repository name.
       tag (Optional[str]): Repository tag.
@@ -103,10 +106,6 @@ class Repository(Parameter):
         NAME_RE.pattern[:-1], TAG_RE.pattern[:-1]))
 
     def __init__(self, repo: str):
-        """
-        Arguments:
-          repo: Repository name, or name and tag (separated by ':').
-        """
         if self.NAME_RE.match(repo):
             self.name = repo
             self.tag = None
@@ -130,6 +129,9 @@ class ContainerName(Parameter):
 
     A ContainerName instance is used to represent a Docker container name.
 
+    Arguments:
+      name: Container name
+
     Attributes:
       name (str): Container name.
     """
@@ -137,10 +139,6 @@ class ContainerName(Parameter):
     NAME_RE = re.compile(r'/?[a-zA-Z0-9_-]+$')
 
     def __init__(self, name: str):
-        """
-        Arguments:
-          name: Container name
-        """
         if self.NAME_RE.match(name):
             self.name = name
             return
@@ -156,6 +154,9 @@ class Env(Parameter):
     An Environment instance contains the environment variables for a Docker
     container.
 
+    Arguments:
+      env: Environment variables, name/value pairs.
+
     Attributes:
       env (Mapping[str, str]): Environment variables, name/value pairs.
     """
@@ -163,10 +164,6 @@ class Env(Parameter):
     KEY_RE = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*$')
 
     def __init__(self, env: Optional[Mapping[str, str]]=None):
-        """
-        Arguments:
-          env: Environment variables, name/value pairs.
-        """
         self.env = env
         if env:
             for k in env:
@@ -188,17 +185,16 @@ class Port(Parameter):
 
     A Port instance represents a network port (TCP or UDP).
 
+    Arguments:
+      port: Port number.
+      protocol: Protocol ('tcp' or 'udp').
+
     Attributes:
       port (int): Port number.
       protocol (str): Protocol ('tcp' or 'udp').
     """
 
     def __init__(self, port: int, protocol: str = 'tcp'):
-        """
-        Arguments:
-          port: Port number.
-          protocol: Protocol ('tcp' or 'udp').
-        """
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -216,6 +212,12 @@ class PortBinding(Parameter):
     A PortBinding instance represents a binding of a network port of a Docker
     container to a host port.
 
+    Arguments:
+      port: Container port number.
+      protocol: Protocol ('tcp' or 'udp').
+      host_ip: Host IP address.
+      host_port: Host port number (defaults to container port number).
+
     Attributes:
       port (int): Container port number (1 ... 65535).
       protocol (str): Protocol ('tcp' or 'udp').
@@ -226,13 +228,6 @@ class PortBinding(Parameter):
     def __init__(self, port: int, protocol: str = 'tcp',
                  host_ip: Optional[IPAddress] = None,
                  host_port: Optional[int] = None):
-        """
-        Arguments:
-          port: Container port number.
-          protocol: Protocol ('tcp' or 'udp').
-          host_ip: Host IP address.
-          host_port: Host port number (defaults to container port number).
-        """
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -258,6 +253,12 @@ class VolumeMount(Parameter):
 
     A VolumeMount instance represents a container mount point.
 
+    Arguments:
+      source: Host path.
+      destination: Container path.
+      ro: Read-only mount.
+      label_mode: SELinux label mode ('z' or 'Z').
+
     Attributes:
       source (str): Source path.
       destination (str): Destination path.
@@ -267,13 +268,6 @@ class VolumeMount(Parameter):
 
     def __init__(self, source: str, destination: str, ro: bool = False,
                  label_mode: Optional[str] = None):
-        """
-        Arguments:
-          source: Host path.
-          destination: Container path.
-          ro: Read-only mount.
-          label_mode: SELinux label mode ('z' or 'Z').
-        """
         self.source = source
         self.destination = destination
         self.ro = ro
@@ -296,6 +290,13 @@ class VolumeBinding(Parameter):
     binding can either be to a new volume, an existing host path, or a volume
     provided by a Docker volume plugin.
 
+    Arguments:
+      container_path: Container path to bind the volume to.
+      volume: Host path or volume name, identifying the volume
+        to bind to.  Host path must start with a '/'.  Volume name must
+        not begin with a '/'.
+      ro: Read-only mount.
+
     Attributes:
       container_path (str): Container path to bind the volume to.
       volume (Optional[str]): Host path or volume name, identifying the volume
@@ -305,14 +306,6 @@ class VolumeBinding(Parameter):
 
     def __init__(self, container_path: str, volume: Optional[str] = None,
                  ro: bool = False):
-        """
-        Arguments:
-          container_path: Container path to bind the volume to.
-          volume: Host path or volume name, identifying the volume
-            to bind to.  Host path must start with a '/'.  Volume name must
-            not begin with a '/'.
-          ro: Read-only mount.
-        """
         if container_path == '':
             raise ValueError('invalid container_path')
         if volume == '':
@@ -340,17 +333,16 @@ class ContainerLink(Parameter):
 
     A ContainerLink instance represents a link to another container.
 
+    Arguments:
+      name: Name of container to link to.
+      alias: Alias to use for linked container.
+
     Attributes:
       name (str): Name of container to link to.
       alias (str): Alias to use for linked container.
     """
 
     def __init__(self, name: str, alias: str):
-        """
-        Arguments:
-          name: Name of container to link to.
-          alias: Alias to use for linked container.
-        """
         self.name = name
         self.alias = alias
 
@@ -364,19 +356,18 @@ class Cpuset(Parameter):
     A Cpuset instance represents a set of CPU or memory nodes, for use when
     specifying where to run a container.
 
+    Arguments:
+      cpuset: Cpuset specification.  See `cpuset(7)`_ for syntax.
+
     Attributes:
       cpuset (str): Cpuset specification.
+
+    .. _cpuset(7): http://man7.org/linux/man-pages/man7/cpuset.7.html
     """
 
     CPUSET_LIST_RE = re.compile(r'(\d|[1-9]\d+)([,-](\d|[1-9]\d+))*$')
 
     def __init__(self, cpuset: str):
-        """
-        Arguments:
-          cpuset: Cpuset specification.  See `cpuset(7)`_ for syntax.
-
-        .. _cpuset(7): http://man7.org/linux/man-pages/man7/cpuset.7.html
-        """
         if not self.CPUSET_LIST_RE.match(cpuset):
             raise ValueError('invalid cpuset: %s' % cpuset)
         self.cpuset = cpuset
@@ -392,6 +383,9 @@ class Hostname(Parameter):
     contain dots ('.').  To specify a fully qualified domain name, use
     :class:`.Domainname`.
 
+    Arguments:
+      hostname: Hostname.
+
     Attributes:
       hostname (str): Hostname.
     """
@@ -399,10 +393,6 @@ class Hostname(Parameter):
     HOSTNAME_RE = re.compile(r'[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
 
     def __init__(self, hostname: str):
-        """
-        Arguments:
-          hostname: Hostname.
-        """
         if not self.HOSTNAME_RE.match(hostname):
             raise ValueError('invalid hostname: %s' % hostname)
         self.hostname = hostname
@@ -416,6 +406,9 @@ class Domainname(Hostname):
 
     A Domainname instance represents a network domain name.
 
+    Arguments:
+      domainname: Domain name.
+
     Attributes:
       domainname (str): Domain name.
     """
@@ -424,10 +417,6 @@ class Domainname(Hostname):
         Hostname.HOSTNAME_RE.pattern[:-1], Hostname.HOSTNAME_RE.pattern[:-1]))
 
     def __init__(self, domainname: str):
-        """
-        Arguments:
-          domainname: Domain name.
-        """
         if not self.DOMAINNAME_RE.match(domainname):
             raise ValueError('invalid domainname: %s' % domainname)
         self.domainname = domainname
@@ -441,6 +430,9 @@ class MacAddress(Parameter):
 
     A MacAddress instance represents an Ethernet MAC address.
 
+    Arguments:
+      addr: MAC address (fx. '01:02:03:04:05:06').
+
     Attributes:
       addr (str): MAC address (fx. '01:02:03:04:05:06').
     """
@@ -448,10 +440,6 @@ class MacAddress(Parameter):
     MACADDRESS_RE = re.compile('[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$')
 
     def __init__(self, addr: str):
-        """
-        Arguments:
-          addr: MAC address (fx. '01:02:03:04:05:06').
-        """
         if not self.MACADDRESS_RE.match(addr):
             raise ValueError('invalid MAC address: %s' % addr)
         self.addr = addr
@@ -465,6 +453,9 @@ class Username(Parameter):
 
     A Username instance represents a UNIX user name.
 
+    Arguments:
+      username: User name.
+
     Attributes:
       username (str): User name.
     """
@@ -472,10 +463,6 @@ class Username(Parameter):
     USERNAME_RE = re.compile(r'[a-z0-9][a-z0-9_-]*$')
 
     def __init__(self, username: str):
-        """
-        Arguments:
-          username: User name.
-        """
         if not self.USERNAME_RE.match(username):
             raise ValueError('invalid username: %s' % username)
         self.username = username
@@ -490,6 +477,10 @@ class HostnameIPMapping(Parameter):
     A HostnameIPMapping instance represents a mapping from a hostname to an IP
     address (IPv6 or IPv4).
 
+    Arguments:
+      hostname: Hostname.
+      ip: IP address.
+
     Attributes:
       hostname (Hostname): Hostname.
       ip (IPAddress): IP address.
@@ -497,11 +488,6 @@ class HostnameIPMapping(Parameter):
 
     def __init__(self, hostname: Union[Hostname, str],
                  ip: Union[IPAddress, str]):
-        """
-        Arguments:
-          hostname: Hostname.
-          ip: IP address.
-        """
         if isinstance(hostname, Hostname):
             self.hostname = hostname
         else:
@@ -521,6 +507,10 @@ class VolumesFrom(Parameter):
     A VolumesFrom instance represents a single docker container to inherit
     volumes from.
 
+    Arguments:
+      name: Container name.
+      ro: Mount volumes read-only (default is read/write).
+
     Attributes:
       name (ContainerName): Container name.
       ro (Optional[bool]): Mount volumes read-only.
@@ -528,11 +518,6 @@ class VolumesFrom(Parameter):
 
     def __init__(self, name: Union[ContainerName, str],
                  ro: Optional[bool] = None):
-        """
-        Arguments:
-          name: Container name.
-          ro: Mount volumes read-only (default is read/write).
-        """
         if isinstance(name, str):
             name = ContainerName(name)
         self.name = name
@@ -552,6 +537,11 @@ class RestartPolicy(Parameter):
     A RestartPolicy instance represents the restart policy to use when
     container exits.
 
+    Arguments:
+      policy: One of 'always', 'unless-stopped', or 'on-failure.
+      maximum_retry_count: Number of times to retry before giving up
+        (required and only allowed together with 'on-failure')
+
     Attributes:
       policy (str): One of 'always', 'unless-stopped', or 'on-failure'.
       maximum_retry_count (int): Number of times to retry before giving up
@@ -559,12 +549,6 @@ class RestartPolicy(Parameter):
     """
 
     def __init__(self, policy: str, maximum_retry_count: Optional[int] = None):
-        """
-        Arguments:
-          policy: One of 'always', 'unless-stopped', or 'on-failure.
-          maximum_retry_count: Number of times to retry before giving up
-            (required and only allowed together with 'on-failure')
-        """
         if policy not in ('always', 'unless-stopped', 'on-failure'):
             raise ValueError('invalid policy value: %s' % policy)
         self.policy = policy
@@ -588,6 +572,13 @@ class DeviceToAdd(Parameter):
 
     A DeviceToAdd instance represents a device to add to a container.
 
+    Arguments:
+      path_on_host: Device path on host.
+      path_in_container: Device path in container (defaults to
+        path_on_host).
+      cgroup_permissions: Access permission, composition of 'r' (read),
+        'w' (write), and 'm' (mknod) (defaults to 'rwm').
+
     Attributes:
       path_on_host (str): Device path on host.
       path_in_container (str): Device path in container.
@@ -598,14 +589,6 @@ class DeviceToAdd(Parameter):
     def __init__(self, path_on_host: str,
                  path_in_container: Optional[str] = None,
                  cgroup_permissions: str = 'rwm'):
-        """
-        Arguments:
-          path_on_host: Device path on host.
-          path_in_container: Device path in container (defaults to
-            path_on_host).
-          cgroup_permissions: Access permission, composition of 'r' (read),
-            'w' (write), and 'm' (mknod) (defaults to 'rwm').
-        """
         self.path_on_host = path_on_host
         if path_in_container is None:
             path_in_container = path_on_host
@@ -623,6 +606,11 @@ class Ulimit(Parameter):
 
     A Ulimit instance represents a ulimit (user limit) to set in a container.
 
+    Arguments:
+      name: Name of ulimit.
+      soft: Soft limit.
+      hard: Hard limit (defaults to soft limit).
+
     Attributes:
       name (str): Name of ulimit.
       soft (str): Soft limit.
@@ -630,12 +618,6 @@ class Ulimit(Parameter):
     """
 
     def __init__(self, name: str, soft: int, hard: Optional[int] = None):
-        """
-        Arguments:
-          name: Name of ulimit.
-          soft: Soft limit.
-          hard: Hard limit (defaults to soft limit).
-        """
         self.name = name
         self.soft = soft
         if hard is None:
@@ -654,6 +636,10 @@ class LogConfiguration(Parameter):
     A LogConfiguration instance represents configuration of how logging is
     done for a container.
 
+    Arguments:
+      type: Logging driver name.
+      config: Driver specific configuration parameters.
+
     Attributes:
       type (str): Logging driver name.
       config (Dict[str, str]): Driver specific configuration parameters.
@@ -663,11 +649,6 @@ class LogConfiguration(Parameter):
         'json-file', 'syslog', 'journald', 'gelf', 'awslogs', 'none')
 
     def __init__(self, type: str, config: Optional[Mapping[str, str]]=None):
-        """
-        Arguments:
-          type: Logging driver name.
-          config: Driver specific configuration parameters.
-        """
         if type not in self.AVAILABLE_TYPES:
             raise ValueError("invalid type: " + type)
         self.type = type
@@ -688,11 +669,16 @@ class AuthConfig(Parameter):
     """
 
 
-class CredentialAuthConfig():
+class CredentialAuthConfig(AuthConfig):
     """Credential based login information for a docker registry.
 
     A CredentialAuthConfig instance represents credential based login
     information for authenticating to a docker repository.
+
+    Arguments:
+      username: User name.
+      password: Password.
+      email: Email address.
 
     Attributes:
       username (str): User name.
@@ -702,12 +688,6 @@ class CredentialAuthConfig():
 
     def __init__(self, username: str, password: str,
                  email: Optional[str] = None):
-        """
-        Arguments:
-          username: User name.
-          password: Password.
-          email: Email address.
-        """
         self.username = username
         self.password = password
         self.email = email
@@ -720,21 +700,20 @@ class CredentialAuthConfig():
         return obj
 
 
-class TokenAuthConfig(object):
+class TokenAuthConfig(AuthConfig):
     """Token based login information for a docker registry.
 
     A TokenAuthConfig instance represents token based login information for
     authenticating to a docker repository.
+
+    Arguments:
+      token: Login token.
 
     Attributes:
       token (str): Login token.
     """
 
     def __init__(self, token: str):
-        """
-        Arguments:
-          token: Login token.
-        """
         self.token = token
 
     def json(self, api_version: Optional[Tuple[int, int]]=None):
@@ -747,21 +726,20 @@ class RegistryAuthConfig(Parameter):
     A RegistryAuthConfig instance represents the login information for one or
     more docker registries.
 
+    Arguments:
+      registry_auths: Mapping of registry hostnames to the login
+        information for authenticating to that registry. Only the registry
+        domain name (and port if not the default "443") are
+        required. However (for legacy reasons) the "official" Docker,
+        Inc. hosted registry must be specified with both a "https://"
+        prefix and a "/v1/" suffix even though Docker will prefer to use
+        the v2 registry API.
+
     Attributes:
       registry_auths: Mapping of registry hostnames to login information.
     """
 
     def __init__(self, registry_auths: Mapping[str, AuthConfig]):
-        """
-        Arguments:
-          registry_auths: Mapping of registry hostnames to the login
-            information for authenticating to that registry. Only the registry
-            domain name (and port if not the default "443") are
-            required. However (for legacy reasons) the "official" Docker,
-            Inc. hosted registry must be specified with both a "https://"
-            prefix and a "/v1/" suffix even though Docker will prefer to use
-            the v2 registry API.
-        """
         self.registry_auths = dict(registry_auths)
 
     def json(self, api_version: Optional[Tuple[int, int]]=None):
