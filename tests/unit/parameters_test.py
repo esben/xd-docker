@@ -659,13 +659,13 @@ class devicetoadd_tests(unittest.case.TestCase):
         dta = DeviceToAdd('/foo')
         assert dta.json() == {'PathOnHost': '/foo',
                               'PathInContainer': '/foo',
-                              'CgroupPermissions': 'mrw'}
+                              'CgroupPermissions': 'rwm'}
 
     def test_2_args(self):
         dta = DeviceToAdd('/foo', '/bar')
         assert dta.json() == {'PathOnHost': '/foo',
                               'PathInContainer': '/bar',
-                              'CgroupPermissions': 'mrw'}
+                              'CgroupPermissions': 'rwm'}
 
     def test_cgroup(self):
         dta = DeviceToAdd('/foo', cgroup_permissions='rw')
@@ -704,12 +704,20 @@ class logconfiguration_tests(unittest.case.TestCase):
             LogConfiguration('foobar')
 
 
-class registryauth_tests(unittest.case.TestCase):
+class authconfig_tests(unittest.case.TestCase):
 
-    def test_default(self):
-        ra = RegistryAuth('https://index.docker.io/v1/', 'me', 'secret')
-        assert ra.json() == {'https://index.docker.io/v1/': {
-            'username': 'me', 'password': 'secret'}}
+    def test_credential_without_email(self):
+        ac = CredentialAuthConfig('me', 'secret')
+        assert ac.json() == {'username': 'me', 'password': 'secret'}
+
+    def test_credential_with_email(self):
+        ac = CredentialAuthConfig('me', 'secret', 'me@domain.com')
+        assert ac.json() == {'username': 'me', 'password': 'secret',
+                             'email': 'me@domain.com'}
+
+    def test_token(self):
+        ac = TokenAuthConfig('foobar')
+        assert ac.json() == {'registrytoken': 'foobar'}
 
 
 class registryauthconfig_tests(unittest.case.TestCase):
@@ -718,19 +726,27 @@ class registryauthconfig_tests(unittest.case.TestCase):
         rac = RegistryAuthConfig([])
         assert rac.json() == {}
 
-    def test_1(self):
-        rac = RegistryAuthConfig([
-            RegistryAuth('https://index.docker.io/v1/', 'me', 'secret')])
+    def test_1_cred(self):
+        rac = RegistryAuthConfig({'https://index.docker.io/v1/':
+                                  CredentialAuthConfig('me', 'secret')})
         assert rac.json() == {'https://index.docker.io/v1/': {
             'username': 'me', 'password': 'secret'}}
 
-    def test_2(self):
-        rac = RegistryAuthConfig([
-            RegistryAuth('https://index.docker.io/v1/', 'me', 'secret'),
-            RegistryAuth('docker.example.com', 'you', 'public')])
+    def test_2_cred(self):
+        rac = RegistryAuthConfig({'https://index.docker.io/v1/':
+                                  CredentialAuthConfig('me', 'secret'),
+                                  'docker.example.com':
+                                  CredentialAuthConfig('you', 'public')})
         assert rac.json() == {
-            'https://index.docker.io/v1/': {'username': 'me', 'password': 'secret'},
+            'https://index.docker.io/v1/': {
+                'username': 'me', 'password': 'secret'},
             'docker.example.com': {'username': 'you', 'password': 'public'}}
+
+    def test_1_token(self):
+        rac = RegistryAuthConfig({
+            'https://index.docker.io/v1/': TokenAuthConfig('foobar')})
+        assert rac.json() == {'https://index.docker.io/v1/': {
+            'registrytoken': 'foobar'}}
 
 
 class repository_tests(unittest.case.TestCase):
@@ -964,6 +980,16 @@ class containerconfig_tests(unittest.case.TestCase):
             'foo', mac_address=MacAddress('01:23:45:ab:cd:ef'))
         with pytest.raises(ValueError):
             cc.json(api_version=(1, 14))
+
+    def test_volumes_1(self):
+        cc = ContainerConfig('foo', volumes=['/foo'])
+        assert cc.json() == {'Image': 'foo',
+                             'Volumes': {'/foo': {}}}
+
+    def test_volumes_2(self):
+        cc = ContainerConfig('foo', volumes=['/foo', '/bar'])
+        assert cc.json() == {'Image': 'foo',
+                             'Volumes': {'/foo': {}, '/bar': {}}}
 
 
 class hostconfig_tests(unittest.case.TestCase):
@@ -1565,14 +1591,14 @@ class hostconfig_tests(unittest.case.TestCase):
         assert hc.json(api_version=(1, 15)) == {'Devices': [
             {'PathOnHost': '/dev/foo',
              'PathInContainer': '/dev/foo',
-             'CgroupPermissions': 'mrw'}]}
+             'CgroupPermissions': 'rwm'}]}
 
     def test_devices_instance(self):
         hc = HostConfig(devices=[DeviceToAdd('/dev/foo', '/dev/bar')])
         assert hc.json(api_version=(1, 15)) == {'Devices': [
             {'PathOnHost': '/dev/foo',
              'PathInContainer': '/dev/bar',
-             'CgroupPermissions': 'mrw'}]}
+             'CgroupPermissions': 'rwm'}]}
 
     def test_devices_not_supported(self):
         hc = HostConfig(devices=['/dev/foo'])
