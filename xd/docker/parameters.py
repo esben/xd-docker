@@ -750,36 +750,60 @@ class RegistryAuthConfig(Parameter):
 
 
 class ContainerConfig(Parameter):
-    """Docker container configuration.
+    """Container configuration parameter.
+
+    A ContainerConfig instance represents the configuration of a container.
 
     Arguments:
-      image: Image create container from
-      command: Command to run (string or list of strings)
-      entrypoint: Container entrypoint (string or list of strings)
-      on_build: Trigger instructions to be executed later (list of strings)
-      hostname: Hostname to use for the container
-      domainname: Domain name to use for the container
-      user: User inside the container (user name)
-      attach_stdin: Attach to stdin (boolean)
-      attach_stdout: Attach to stdout (boolean)
-      attach_stderr: Attach to stderr (boolean)
-      tty: Attach standard streams to a tty (boolean)
-      open_stdin: Open stdin (boolean)
-      stdin_once: Close stdin after the client disconnects (boolean)
-      env: Environment variables (dict)
-      labels: Labels to set on container (dict)
-      working_dir: Working directory for command to run in (string)
-      mac_address: MAC address (string)
-      network: Whether to enable networking in the container (boolean)
-      exposed_ports: Exposed ports (list of ports)
-      volumes: FIXME
-      stop_signal: Signal to stop container (int or string)
-    """
+      image: Image to create container from.
+      command: Command to run.
+      entrypoint: Container entrypoint.
+      on_build: Trigger instructions to be executed later (when used as base
+        image for another build).
+      hostname: Hostname to use for the container.
+      domainname: Domain name to use for the container.
+      user: User inside the container.
+      attach_stdin: Attach to stdin.
+      attach_stdout: Attach to stdout.
+      attach_stderr: Attach to stderr.
+      tty: Attach standard streams to a tty.
+      open_stdin: Open stdin.
+      stdin_once: Close stdin after the client disconnects.
+      env: Environment variables.
+      labels: Labels to set on container.
+      working_dir: Working directory for command to run in.
+      network: Whether to enable networking in the container.
+      mac_address: MAC address.
+      exposed_ports: Exposed ports.
+      volumes: List of (in container) paths to use as volumes.
+      stop_signal: Signal to stop container.
 
-    # TODO: Figure out how to handle Mounts and Volumes parameters.  It seems
-    # like Volumes parameter were replaced by Mounts in 1.20, and the Mounts
-    # parameter has more features.  So maybe we should support mounts
-    # argument, and then generate Volumes for older API.
+    Attributes:
+      image (str): Image to create container from.
+      command (Optional[Command]): Command to run.
+      entrypoint (Optional[Command]): Container entrypoint.
+      on_build (Optional[Sequence[str]]): Trigger instructions to be executed
+        later (when used as base image for another build).
+      hostname (Optional[Hostname]): Hostname to use for the container.
+      domainname (Optional[Domainname]): Domain name to use for the container.
+      user (Optional[Username]): User inside the container.
+      attach_stdin (Optional[bool]): Attach to stdin.
+      attach_stdout (Optional[bool]): Attach to stdout.
+      attach_stderr (Optional[bool]): Attach to stderr.
+      tty (Optional[bool]): Attach standard streams to a tty.
+      open_stdin (Optional[bool]): Open stdin.
+      stdin_once (Optional[bool]): Close stdin after the client disconnects.
+      env (Optional[Env]): Environment variables.
+      labels (Optional[Mapping[str, str]]): Labels to set on container.
+      working_dir (Optional[str]): Working directory for command to run in.
+      mac_address (Optional[MacAddress]): MAC address.
+      network (Optional[bool]): Whether to enable networking in the container.
+      mac_address (Optional[MacAddress]): MAC address.
+      exposed_ports (Optional[Sequence[Port]]): Exposed ports.
+      volumes (Optional[Sequence[str])): List of (in container) paths to use
+        as volumes.
+      stop_signal (Optional[Union[int, str]]): Signal to stop container.
+    """
 
     def __init__(self,
                  image: str,
