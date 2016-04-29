@@ -796,7 +796,6 @@ class ContainerConfig(Parameter):
       env (Optional[Env]): Environment variables.
       labels (Optional[Mapping[str, str]]): Labels to set on container.
       working_dir (Optional[str]): Working directory for command to run in.
-      mac_address (Optional[MacAddress]): MAC address.
       network (Optional[bool]): Whether to enable networking in the container.
       mac_address (Optional[MacAddress]): MAC address.
       exposed_ports (Optional[Sequence[Port]]): Exposed ports.
@@ -822,7 +821,7 @@ class ContainerConfig(Parameter):
                  env: Optional[Union[Env, Mapping[str, str]]]=None,
                  labels: Optional[Mapping[str, str]]=None,
                  working_dir: Optional[str]=None,
-                 network: bool=True,
+                 network: Optional[bool]=None,
                  mac_address: Optional[Union[MacAddress, str]]=None,
                  exposed_ports: Optional[Sequence[Port]]=None,
                  volumes: Optional[Sequence[str]]=None,
@@ -863,11 +862,9 @@ class ContainerConfig(Parameter):
 
     @property
     def network_disabled(self):
-        print('network_disabled()', self.network)
-        if self.network is False:
-            return True
-        else:
+        if self.network is None:
             return None
+        return not self.network
 
     @property
     def volumes_map(self):
