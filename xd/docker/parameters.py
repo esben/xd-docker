@@ -904,21 +904,132 @@ class HostConfig(object):
     """Docker container host configuration.
 
     Arguments:
-    memory -- memory limit (bytes)
-    swap -- swap limit (bytes)
-    cpu_shares -- cpu shares relative to other containers (integer value)
-    cpu_period -- length of a cpu period (microseconds)
-    cpuset_cpus -- cgroups cpuset.cpu to use
-    cpuset_mems -- cgroups cpuset.mem to use
-    blkio_weight -- relative block io weight (10 ... 1000)
-    memory_swappiness -- memory swappiness behavior (10 ... 1000)
-    oom_kill -- whether to enable OOM killer for container or not
+      binds: List of volume bindings.
+      links: List of links to other containers.
+      lxc_config: LXC specific configurations. Only valid when using the lxc
+        execution driver.
+      port_bindings: List of port bindings, ie. container ports that exposed
+        as host ports.
+      publish_all_ports: Allocate a random host port for all exposed ports.
+      privileged: Container has full access to host.
+      read_only_rootfs: Mount container root filesystem read only.
+      dns: List of DNS servers to use.
+      dns_options: List of DNS options.
+      dns_search: List of DNS search domains.
+      extra_hosts: A list of hostname to IP mappings to add to container's
+        /etc/hosts file.
+      volumes_from: List of containers to inherit volumes from.
+      cap_add: List of kernel capabilities to add to container.
+      cap_drop: List of kernel capabilities to drop from container.
+      group_add: List of additional groups that the container process will
+        run as.
+      restart_policy: Behavior when container exits.
+      network_mode: Networking mode for the container.
+      devices: List of devices to add to container.
+      ulimits: List of ulimits to set in container.
+      security_opt: List of string values to customize labels for MLS systems,
+        such as SELinux.
+      log_config: Log configuration for container.
+      cgroup_parent: Path to cgroups under which the container's cgroup is
+        created.
+      volume_driver: Driver that this container uses to mount volumes.
+      shm_size: Size of /dev/shm in bytes.
+      memory: Memory limit in bytes.
+      swap: Swap limit in bytes.
+      memory_reservation: Memory soft limit in bytes.
+      kernel_memory: Kernel memory limit in bytes.
+      cpu_shares: CPU shares relative to other containers.
+      cpu_period: Length of a CPU period in microseconds.
+      cpu_quota: Microseconds of CPU time that the container can get in a
+        CPU period.
+      cpuset_cpus: Cgroups cpuset.cpu to use.
+      cpuset_mems: Cgroups cpuset.mem to use.
+      blkio_weight: Relative block io weight (10 ... 1000).
+      memory_swappiness: Memory swappiness behavior (10 ... 100).
+      oom_kill: Enable OOM killer for container.
+
+    Attributes:
+      binds (Optional[List[VolumeBinding]]): List of volume bindings.
+      links (Optional[List[ContainerLink]]): List of links to other containers.
+      lxc_config (Optional[Dict[str, str]]): LXC specific configurations. Only
+        valid when using the lxc execution driver.
+      port_bindings (Optional[List[PortBinding]]): List of port bindings, ie.
+        container ports that exposed as host ports.
+      publish_all_ports (Optional[bool]): Allocate a random host port for all
+        exposed ports.
+      privileged (Optional[bool]): Container has full access to host.
+      read_only_rootfs (Optional[bool]): Mount container root filesystem read
+        only.
+      dns (Optional[List[IPAddress]]): List of DNS servers to use.
+      dns_options (Optional[List[str]]): List of DNS options.
+      dns_search (Optional[List[str]]): List of DNS search domains.
+      extra_hosts (Optional[List[HostnameIPMapping]]): A list of hostname to
+        IP mappings to add to container's /etc/hosts file.
+      volumes_from (Optional[List[VolumesFrom]]): List of containers to
+        inherit volumes from.
+      cap_add (Optional[List[str]]): List of kernel capabilities to add to
+        container.
+      cap_drop (Optional[List[str]]): List of kernel capabilities to drop
+        from container.
+      group_add (Optional[List[str]]): List of additional groups that the
+        container process will run as.
+      restart_policy (Optional[RestartPolicy]): Behavior when container exits.
+      network_mode (Optional[str]): Networking mode for the container.
+      devices (Optional[List[DeviceToAdd]]): List of devices to add to
+        container.
+      ulimits (Optional[List[Ulimit]]): List of ulimits to set in container.
+      security_opt (Optional[List[str]]): List of string values to customize
+        labels for MLS systems, such as SELinux.
+      log_config (Optional[LogConfiguration]): Log configuration for container.
+      cgroup_parent (Optional[str]): Path to cgroups under which the
+        container's cgroup is created.
+      volume_driver (Optional[str]): Driver that this container uses to mount
+        volumes.
+      shm_size (Optional[int]): Size of /dev/shm in bytes.
+      memory (Optional[int]): Memory limit in bytes.
+      swap (Optional[int]): Swap limit in bytes.
+      memory_reservation (Optional[int]): Memory soft limit in bytes.
+      kernel_memory (Optional[int]): Kernel memory limit in bytes.
+      cpu_shares (Optional[int]): CPU shares relative to other containers.
+      cpu_period (Optional[int]): Length of a CPU period in microseconds.
+      cpu_quota (Optional[int]): Microseconds of CPU time that the container
+        can get in a CPU period.
+      cpuset_cpus (Optional[Cpuset]): Cgroups cpuset.cpu to use.
+      cpuset_mems (Optional[Cpuset]): Cgroups cpuset.mem to use.
+      blkio_weight (Optional[int]): Relative block io weight (10 ... 1000).
+      memory_swappiness (Optional[int]): Memory swappiness behavior
+        (10 ... 100).
+      oom_kill (Optional[bool]): Enable OOM killer for container.
     """
 
     def __init__(self,
                  binds: Optional[Sequence[VolumeBinding]]=None,
                  links: Optional[Sequence[ContainerLink]]=None,
                  lxc_conf: Optional[Mapping[str, str]]=None,
+                 port_bindings: Optional[Sequence[PortBinding]]=None,
+                 publish_all_ports: Optional[bool]=None,
+                 privileged: Optional[bool]=None,
+                 read_only_rootfs: Optional[bool]=None,
+                 dns: Optional[Sequence[IPAddress]]=None,
+                 dns_options: Optional[Sequence[str]]=None,
+                 dns_search: Optional[Sequence[str]]=None,
+                 extra_hosts: Optional[Sequence[
+                     Union[HostnameIPMapping, str]]]=None,
+                 volumes_from: Optional[Sequence[
+                     Union[VolumesFrom, str]]]=None,
+                 cap_add: Optional[Sequence[str]]=None,
+                 cap_drop: Optional[Sequence[str]]=None,
+                 group_add: Optional[Sequence[str]]=None,
+                 restart_policy: Optional[RestartPolicy]=None,
+                 network_mode: Optional[str]=None,
+                 devices: Optional[Sequence[
+                     Union[DeviceToAdd, str]]]=None,
+                 ulimits: Optional[Sequence[Ulimit]]=None,
+                 security_opt: Optional[Sequence[str]]=None,
+                 log_config: Optional[LogConfiguration]=None,
+                 cgroup_parent: Optional[str]=None,
+                 volume_driver: Optional[str]=None,
+                 shm_size: Optional[int]=None,
                  memory: Optional[int]=None,
                  swap: Optional[int]=None,
                  memory_reservation: Optional[int]=None,
@@ -930,31 +1041,7 @@ class HostConfig(object):
                  cpuset_mems: Optional[Union[Cpuset, str]]=None,
                  blkio_weight: Optional[int]=None,
                  memory_swappiness: Optional[int]=None,
-                 oom_kill: Optional[bool]=None,
-                 port_bindings: Sequence[PortBinding]=None,
-                 publish_all_ports: Optional[bool]=None,
-                 privileged: Optional[bool]=None,
-                 read_only_rootfs: Optional[bool]=None,
-                 dns: Optional[Sequence[IPAddress]]=None,
-                 dns_options: Optional[Sequence[str]]=None,
-                 dns_search: Optional[Sequence[str]]=None,
-                 extra_hosts: Optional[Sequence[
-                     Union[HostnameIPMapping, str]]]=None,
-                 group_add: Optional[Sequence[str]]=None,
-                 volumes_from: Optional[Sequence[
-                     Union[VolumesFrom, str]]]=None,
-                 cap_add: Optional[Sequence[str]]=None,
-                 cap_drop: Optional[Sequence[str]]=None,
-                 restart_policy: Optional[RestartPolicy]=None,
-                 network_mode: Optional[str]=None,
-                 devices: Optional[Sequence[
-                     Union[DeviceToAdd, str]]]=None,
-                 ulimits: Optional[Sequence[Ulimit]]=None,
-                 log_config: Optional[LogConfiguration]=None,
-                 security_opt: Optional[Sequence[str]]=None,
-                 cgroup_parent: Optional[str]=None,
-                 volume_driver: Optional[str]=None,
-                 shm_size: Optional[int]=None):
+                 oom_kill: Optional[bool]=None):
         if binds is not None:
             binds = list(binds)
         self.binds = binds
@@ -964,6 +1051,69 @@ class HostConfig(object):
         if lxc_conf is not None:
             lxc_conf = dict(lxc_conf)
         self.lxc_conf = lxc_conf
+        if port_bindings is not None:
+            port_bindings = list(port_bindings)
+        self.port_bindings = port_bindings
+        self.publish_all_ports = publish_all_ports
+        self.privileged = privileged
+        self.read_only_rootfs = read_only_rootfs
+        if dns is not None:
+            dns = [ipaddress.ip_address(ip)
+                   if isinstance(ip, str) else ip
+                   for ip in dns]
+        self.dns = dns
+        if dns_options is not None:
+            dns_options = list(dns_options)
+        self.dns_options = dns_options
+        if dns_search is not None:
+            dns_search = list(dns_search)
+        self.dns_search = dns_search
+        if extra_hosts is not None:
+            extra_hosts = list(extra_hosts)
+            for index, host in enumerate(extra_hosts):
+                if isinstance(host, str):
+                    host = host.split(':')
+                    if len(host) != 2:
+                        raise ValueError('invalid extra_hosts str value: %s' %
+                                         extra_hosts[index])
+                    extra_hosts[index] = HostnameIPMapping(*host)
+        self.extra_hosts = extra_hosts
+        if volumes_from is not None:
+            volumes_from = list(volumes_from)
+            for index, vf in enumerate(volumes_from):
+                if isinstance(vf, str):
+                    volumes_from[index] = VolumesFrom(vf)
+        self.volumes_from = volumes_from
+        if cap_add is not None:
+            cap_add = list(cap_add)
+        self.cap_add = cap_add
+        if cap_drop is not None:
+            cap_drop = list(cap_drop)
+        self.cap_drop = cap_drop
+        if group_add is not None:
+            group_add = list(group_add)
+        self.group_add = group_add
+        if restart_policy is not None:
+            if isinstance(restart_policy, str):
+                restart_policy = RestartPolicy(restart_policy)
+        self.restart_policy = restart_policy
+        self.network_mode = network_mode
+        if devices is not None:
+            devices = list(devices)
+            for index, dev in enumerate(devices):
+                if isinstance(dev, str):
+                    devices[index] = DeviceToAdd(dev)
+        self.devices = devices
+        if ulimits is not None:
+            ulimits = list(ulimits)
+        self.ulimits = ulimits
+        if security_opt is not None:
+            security_opt = list(security_opt)
+        self.security_opt = security_opt
+        self.log_config = log_config
+        self.cgroup_parent = cgroup_parent
+        self.volume_driver = volume_driver
+        self.shm_size = shm_size
         if isinstance(memory, int) and memory < 0:
             raise ValueError("'memory' limit cannot be negative: " +
                              str(memory))
@@ -1015,69 +1165,6 @@ class HostConfig(object):
                 str(memory_swappiness))
         self.memory_swappiness = memory_swappiness
         self.oom_kill = oom_kill
-        if port_bindings is not None:
-            port_bindings = list(port_bindings)
-        self.port_bindings = port_bindings
-        self.publish_all_ports = publish_all_ports
-        self.privileged = privileged
-        self.read_only_rootfs = read_only_rootfs
-        if dns is not None:
-            dns = [ipaddress.ip_address(ip)
-                   if isinstance(ip, str) else ip
-                   for ip in dns]
-        self.dns = dns
-        if dns_options is not None:
-            dns_options = list(dns_options)
-        self.dns_options = dns_options
-        if dns_search is not None:
-            dns_search = list(dns_search)
-        self.dns_search = dns_search
-        if extra_hosts is not None:
-            extra_hosts = list(extra_hosts)
-            for index, host in enumerate(extra_hosts):
-                if isinstance(host, str):
-                    host = host.split(':')
-                    if len(host) != 2:
-                        raise ValueError('invalid extra_hosts str value: %s' %
-                                         extra_hosts[index])
-                    extra_hosts[index] = HostnameIPMapping(*host)
-        self.extra_hosts = extra_hosts
-        if group_add is not None:
-            group_add = list(group_add)
-        self.group_add = group_add
-        if volumes_from is not None:
-            volumes_from = list(volumes_from)
-            for index, vf in enumerate(volumes_from):
-                if isinstance(vf, str):
-                    volumes_from[index] = VolumesFrom(vf)
-        self.volumes_from = volumes_from
-        if cap_add is not None:
-            cap_add = list(cap_add)
-        self.cap_add = cap_add
-        if cap_drop is not None:
-            cap_drop = list(cap_drop)
-        self.cap_drop = cap_drop
-        if restart_policy is not None:
-            if isinstance(restart_policy, str):
-                restart_policy = RestartPolicy(restart_policy)
-        self.restart_policy = restart_policy
-        self.network_mode = network_mode
-        if devices is not None:
-            devices = list(devices)
-            for index, dev in enumerate(devices):
-                if isinstance(dev, str):
-                    devices[index] = DeviceToAdd(dev)
-        self.devices = devices
-        if ulimits is not None:
-            ulimits = list(ulimits)
-        self.ulimits = ulimits
-        if security_opt is not None:
-            security_opt = list(security_opt)
-        self.security_opt = security_opt
-        self.log_config = log_config
-        self.cgroup_parent = cgroup_parent
-        self.volume_driver = volume_driver
-        self.shm_size = shm_size
 
     @property
     def oom_kill_disable(self):
