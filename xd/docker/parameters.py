@@ -93,6 +93,9 @@ class Repository(Parameter):
     A Repository instance is used to represent a Docker repository name, or
     repository name and tag.
 
+    Arguments:
+      repo: Repository name, or name and tag (separated by ':').
+
     Attributes:
       name (str): Repository name.
       tag (Optional[str]): Repository tag.
@@ -103,10 +106,6 @@ class Repository(Parameter):
         NAME_RE.pattern[:-1], TAG_RE.pattern[:-1]))
 
     def __init__(self, repo: str):
-        """
-        Arguments:
-          repo: Repository name, or name and tag (separated by ':').
-        """
         if self.NAME_RE.match(repo):
             self.name = repo
             self.tag = None
@@ -130,6 +129,9 @@ class ContainerName(Parameter):
 
     A ContainerName instance is used to represent a Docker container name.
 
+    Arguments:
+      name: Container name
+
     Attributes:
       name (str): Container name.
     """
@@ -137,10 +139,6 @@ class ContainerName(Parameter):
     NAME_RE = re.compile(r'/?[a-zA-Z0-9_-]+$')
 
     def __init__(self, name: str):
-        """
-        Arguments:
-          name: Container name
-        """
         if self.NAME_RE.match(name):
             self.name = name
             return
@@ -156,6 +154,9 @@ class Env(Parameter):
     An Environment instance contains the environment variables for a Docker
     container.
 
+    Arguments:
+      env: Environment variables, name/value pairs.
+
     Attributes:
       env (Mapping[str, str]): Environment variables, name/value pairs.
     """
@@ -163,10 +164,6 @@ class Env(Parameter):
     KEY_RE = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*$')
 
     def __init__(self, env: Optional[Mapping[str, str]]=None):
-        """
-        Arguments:
-          env: Environment variables, name/value pairs.
-        """
         self.env = env
         if env:
             for k in env:
@@ -188,17 +185,16 @@ class Port(Parameter):
 
     A Port instance represents a network port (TCP or UDP).
 
+    Arguments:
+      port: Port number.
+      protocol: Protocol ('tcp' or 'udp').
+
     Attributes:
       port (int): Port number.
       protocol (str): Protocol ('tcp' or 'udp').
     """
 
     def __init__(self, port: int, protocol: str = 'tcp'):
-        """
-        Arguments:
-          port: Port number.
-          protocol: Protocol ('tcp' or 'udp').
-        """
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -216,6 +212,12 @@ class PortBinding(Parameter):
     A PortBinding instance represents a binding of a network port of a Docker
     container to a host port.
 
+    Arguments:
+      port: Container port number.
+      protocol: Protocol ('tcp' or 'udp').
+      host_ip: Host IP address.
+      host_port: Host port number (defaults to container port number).
+
     Attributes:
       port (int): Container port number (1 ... 65535).
       protocol (str): Protocol ('tcp' or 'udp').
@@ -226,13 +228,6 @@ class PortBinding(Parameter):
     def __init__(self, port: int, protocol: str = 'tcp',
                  host_ip: Optional[IPAddress] = None,
                  host_port: Optional[int] = None):
-        """
-        Arguments:
-          port: Container port number.
-          protocol: Protocol ('tcp' or 'udp').
-          host_ip: Host IP address.
-          host_port: Host port number (defaults to container port number).
-        """
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -258,6 +253,12 @@ class VolumeMount(Parameter):
 
     A VolumeMount instance represents a container mount point.
 
+    Arguments:
+      source: Host path.
+      destination: Container path.
+      ro: Read-only mount.
+      label_mode: SELinux label mode ('z' or 'Z').
+
     Attributes:
       source (str): Source path.
       destination (str): Destination path.
@@ -267,13 +268,6 @@ class VolumeMount(Parameter):
 
     def __init__(self, source: str, destination: str, ro: bool = False,
                  label_mode: Optional[str] = None):
-        """
-        Arguments:
-          source: Host path.
-          destination: Container path.
-          ro: Read-only mount.
-          label_mode: SELinux label mode ('z' or 'Z').
-        """
         self.source = source
         self.destination = destination
         self.ro = ro
@@ -296,6 +290,13 @@ class VolumeBinding(Parameter):
     binding can either be to a new volume, an existing host path, or a volume
     provided by a Docker volume plugin.
 
+    Arguments:
+      container_path: Container path to bind the volume to.
+      volume: Host path or volume name, identifying the volume
+        to bind to.  Host path must start with a '/'.  Volume name must
+        not begin with a '/'.
+      ro: Read-only mount.
+
     Attributes:
       container_path (str): Container path to bind the volume to.
       volume (Optional[str]): Host path or volume name, identifying the volume
@@ -305,14 +306,6 @@ class VolumeBinding(Parameter):
 
     def __init__(self, container_path: str, volume: Optional[str] = None,
                  ro: bool = False):
-        """
-        Arguments:
-          container_path: Container path to bind the volume to.
-          volume: Host path or volume name, identifying the volume
-            to bind to.  Host path must start with a '/'.  Volume name must
-            not begin with a '/'.
-          ro: Read-only mount.
-        """
         if container_path == '':
             raise ValueError('invalid container_path')
         if volume == '':
@@ -340,17 +333,16 @@ class ContainerLink(Parameter):
 
     A ContainerLink instance represents a link to another container.
 
+    Arguments:
+      name: Name of container to link to.
+      alias: Alias to use for linked container.
+
     Attributes:
       name (str): Name of container to link to.
       alias (str): Alias to use for linked container.
     """
 
     def __init__(self, name: str, alias: str):
-        """
-        Arguments:
-          name: Name of container to link to.
-          alias: Alias to use for linked container.
-        """
         self.name = name
         self.alias = alias
 
@@ -364,19 +356,18 @@ class Cpuset(Parameter):
     A Cpuset instance represents a set of CPU or memory nodes, for use when
     specifying where to run a container.
 
+    Arguments:
+      cpuset: Cpuset specification.  See `cpuset(7)`_ for syntax.
+
     Attributes:
       cpuset (str): Cpuset specification.
+
+    .. _cpuset(7): http://man7.org/linux/man-pages/man7/cpuset.7.html
     """
 
     CPUSET_LIST_RE = re.compile(r'(\d|[1-9]\d+)([,-](\d|[1-9]\d+))*$')
 
     def __init__(self, cpuset: str):
-        """
-        Arguments:
-          cpuset: Cpuset specification.  See `cpuset(7)`_ for syntax.
-
-        .. _cpuset(7): http://man7.org/linux/man-pages/man7/cpuset.7.html
-        """
         if not self.CPUSET_LIST_RE.match(cpuset):
             raise ValueError('invalid cpuset: %s' % cpuset)
         self.cpuset = cpuset
@@ -392,6 +383,9 @@ class Hostname(Parameter):
     contain dots ('.').  To specify a fully qualified domain name, use
     :class:`.Domainname`.
 
+    Arguments:
+      hostname: Hostname.
+
     Attributes:
       hostname (str): Hostname.
     """
@@ -399,10 +393,6 @@ class Hostname(Parameter):
     HOSTNAME_RE = re.compile(r'[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
 
     def __init__(self, hostname: str):
-        """
-        Arguments:
-          hostname: Hostname.
-        """
         if not self.HOSTNAME_RE.match(hostname):
             raise ValueError('invalid hostname: %s' % hostname)
         self.hostname = hostname
@@ -416,6 +406,9 @@ class Domainname(Hostname):
 
     A Domainname instance represents a network domain name.
 
+    Arguments:
+      domainname: Domain name.
+
     Attributes:
       domainname (str): Domain name.
     """
@@ -424,10 +417,6 @@ class Domainname(Hostname):
         Hostname.HOSTNAME_RE.pattern[:-1], Hostname.HOSTNAME_RE.pattern[:-1]))
 
     def __init__(self, domainname: str):
-        """
-        Arguments:
-          domainname: Domain name.
-        """
         if not self.DOMAINNAME_RE.match(domainname):
             raise ValueError('invalid domainname: %s' % domainname)
         self.domainname = domainname
@@ -437,7 +426,16 @@ class Domainname(Hostname):
 
 
 class MacAddress(Parameter):
-    """Ethernet MAC address."""
+    """Ethernet MAC address.
+
+    A MacAddress instance represents an Ethernet MAC address.
+
+    Arguments:
+      addr: MAC address (fx. '01:02:03:04:05:06').
+
+    Attributes:
+      addr (str): MAC address (fx. '01:02:03:04:05:06').
+    """
 
     MACADDRESS_RE = re.compile('[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$')
 
@@ -451,7 +449,16 @@ class MacAddress(Parameter):
 
 
 class Username(Parameter):
-    """User name."""
+    """User name.
+
+    A Username instance represents a UNIX user name.
+
+    Arguments:
+      username: User name.
+
+    Attributes:
+      username (str): User name.
+    """
 
     USERNAME_RE = re.compile(r'[a-z0-9][a-z0-9_-]*$')
 
@@ -465,7 +472,19 @@ class Username(Parameter):
 
 
 class HostnameIPMapping(Parameter):
-    """Hostname to IP address mapping."""
+    """Hostname to IP address mapping.
+
+    A HostnameIPMapping instance represents a mapping from a hostname to an IP
+    address (IPv6 or IPv4).
+
+    Arguments:
+      hostname: Hostname.
+      ip: IP address.
+
+    Attributes:
+      hostname (Hostname): Hostname.
+      ip (IPAddress): IP address.
+    """
 
     def __init__(self, hostname: Union[Hostname, str],
                  ip: Union[IPAddress, str]):
@@ -483,7 +502,19 @@ class HostnameIPMapping(Parameter):
 
 
 class VolumesFrom(Parameter):
-    """Docker container to inherit volumes from."""
+    """Docker container to inherit volumes from.
+
+    A VolumesFrom instance represents a single docker container to inherit
+    volumes from.
+
+    Arguments:
+      name: Container name.
+      ro: Mount volumes read-only (default is read/write).
+
+    Attributes:
+      name (ContainerName): Container name.
+      ro (Optional[bool]): Mount volumes read-only.
+    """
 
     def __init__(self, name: Union[ContainerName, str],
                  ro: Optional[bool] = None):
@@ -501,7 +532,21 @@ class VolumesFrom(Parameter):
 
 
 class RestartPolicy(Parameter):
-    """Restart policy for when the container exits."""
+    """Restart policy for when the container exits.
+
+    A RestartPolicy instance represents the restart policy to use when
+    container exits.
+
+    Arguments:
+      policy: One of 'always', 'unless-stopped', or 'on-failure.
+      maximum_retry_count: Number of times to retry before giving up
+        (required and only allowed together with 'on-failure')
+
+    Attributes:
+      policy (str): One of 'always', 'unless-stopped', or 'on-failure'.
+      maximum_retry_count (int): Number of times to retry before giving up
+        (only present when policy is 'on-failure').
+    """
 
     def __init__(self, policy: str, maximum_retry_count: Optional[int] = None):
         if policy not in ('always', 'unless-stopped', 'on-failure'):
@@ -523,7 +568,23 @@ class RestartPolicy(Parameter):
 
 
 class DeviceToAdd(Parameter):
-    """Device to add to docker container."""
+    """Device to add to container.
+
+    A DeviceToAdd instance represents a device to add to a container.
+
+    Arguments:
+      path_on_host: Device path on host.
+      path_in_container: Device path in container (defaults to
+        path_on_host).
+      cgroup_permissions: Access permission, composition of 'r' (read),
+        'w' (write), and 'm' (mknod) (defaults to 'rwm').
+
+    Attributes:
+      path_on_host (str): Device path on host.
+      path_in_container (str): Device path in container.
+      cgroup_permissions (str): Access permission, composition of 'r' (read),
+        'w' (write), and 'm' (mknod).
+    """
 
     def __init__(self, path_on_host: str,
                  path_in_container: Optional[str] = None,
@@ -541,7 +602,20 @@ class DeviceToAdd(Parameter):
 
 
 class Ulimit(Parameter):
-    """Ulimit setting."""
+    """Ulimit parameter.
+
+    A Ulimit instance represents a ulimit (user limit) to set in a container.
+
+    Arguments:
+      name: Name of ulimit.
+      soft: Soft limit.
+      hard: Hard limit (defaults to soft limit).
+
+    Attributes:
+      name (str): Name of ulimit.
+      soft (str): Soft limit.
+      hard (str): Hard limit.
+    """
 
     def __init__(self, name: str, soft: int, hard: Optional[int] = None):
         self.name = name
@@ -557,7 +631,19 @@ class Ulimit(Parameter):
 
 
 class LogConfiguration(Parameter):
-    """Docker container log configuration."""
+    """Log configuration for container.
+
+    A LogConfiguration instance represents configuration of how logging is
+    done for a container.
+
+    Arguments:
+      type: Logging driver name.
+      config: Driver specific configuration parameters.
+
+    Attributes:
+      type (str): Logging driver name.
+      config (Dict[str, str]): Driver specific configuration parameters.
+    """
 
     AVAILABLE_TYPES = (
         'json-file', 'syslog', 'journald', 'gelf', 'awslogs', 'none')
@@ -583,11 +669,16 @@ class AuthConfig(Parameter):
     """
 
 
-class CredentialAuthConfig():
+class CredentialAuthConfig(AuthConfig):
     """Credential based login information for a docker registry.
 
     A CredentialAuthConfig instance represents credential based login
     information for authenticating to a docker repository.
+
+    Arguments:
+      username: User name.
+      password: Password.
+      email: Email address.
 
     Attributes:
       username (str): User name.
@@ -597,12 +688,6 @@ class CredentialAuthConfig():
 
     def __init__(self, username: str, password: str,
                  email: Optional[str] = None):
-        """
-        Arguments:
-          username: User name.
-          password: Password.
-          email: Email address.
-        """
         self.username = username
         self.password = password
         self.email = email
@@ -615,21 +700,20 @@ class CredentialAuthConfig():
         return obj
 
 
-class TokenAuthConfig(object):
+class TokenAuthConfig(AuthConfig):
     """Token based login information for a docker registry.
 
     A TokenAuthConfig instance represents token based login information for
     authenticating to a docker repository.
+
+    Arguments:
+      token: Login token.
 
     Attributes:
       token (str): Login token.
     """
 
     def __init__(self, token: str):
-        """
-        Arguments:
-          token: Login token.
-        """
         self.token = token
 
     def json(self, api_version: Optional[Tuple[int, int]]=None):
@@ -642,21 +726,20 @@ class RegistryAuthConfig(Parameter):
     A RegistryAuthConfig instance represents the login information for one or
     more docker registries.
 
+    Arguments:
+      registry_auths: Mapping of registry hostnames to the login
+        information for authenticating to that registry. Only the registry
+        domain name (and port if not the default "443") are
+        required. However (for legacy reasons) the "official" Docker,
+        Inc. hosted registry must be specified with both a "https://"
+        prefix and a "/v1/" suffix even though Docker will prefer to use
+        the v2 registry API.
+
     Attributes:
       registry_auths: Mapping of registry hostnames to login information.
     """
 
     def __init__(self, registry_auths: Mapping[str, AuthConfig]):
-        """
-        Arguments:
-          registry_auths: Mapping of registry hostnames to the login
-            information for authenticating to that registry. Only the registry
-            domain name (and port if not the default "443") are
-            required. However (for legacy reasons) the "official" Docker,
-            Inc. hosted registry must be specified with both a "https://"
-            prefix and a "/v1/" suffix even though Docker will prefer to use
-            the v2 registry API.
-        """
         self.registry_auths = dict(registry_auths)
 
     def json(self, api_version: Optional[Tuple[int, int]]=None):
@@ -667,36 +750,59 @@ class RegistryAuthConfig(Parameter):
 
 
 class ContainerConfig(Parameter):
-    """Docker container configuration.
+    """Container configuration parameter.
+
+    A ContainerConfig instance represents the configuration of a container.
 
     Arguments:
-      image: Image create container from
-      command: Command to run (string or list of strings)
-      entrypoint: Container entrypoint (string or list of strings)
-      on_build: Trigger instructions to be executed later (list of strings)
-      hostname: Hostname to use for the container
-      domainname: Domain name to use for the container
-      user: User inside the container (user name)
-      attach_stdin: Attach to stdin (boolean)
-      attach_stdout: Attach to stdout (boolean)
-      attach_stderr: Attach to stderr (boolean)
-      tty: Attach standard streams to a tty (boolean)
-      open_stdin: Open stdin (boolean)
-      stdin_once: Close stdin after the client disconnects (boolean)
-      env: Environment variables (dict)
-      labels: Labels to set on container (dict)
-      working_dir: Working directory for command to run in (string)
-      mac_address: MAC address (string)
-      network: Whether to enable networking in the container (boolean)
-      exposed_ports: Exposed ports (list of ports)
-      volumes: FIXME
-      stop_signal: Signal to stop container (int or string)
-    """
+      image: Image to create container from.
+      command: Command to run.
+      entrypoint: Container entrypoint.
+      on_build: Trigger instructions to be executed later (when used as base
+        image for another build).
+      hostname: Hostname to use for the container.
+      domainname: Domain name to use for the container.
+      user: User inside the container.
+      attach_stdin: Attach to stdin.
+      attach_stdout: Attach to stdout.
+      attach_stderr: Attach to stderr.
+      tty: Attach standard streams to a tty.
+      open_stdin: Open stdin.
+      stdin_once: Close stdin after the client disconnects.
+      env: Environment variables.
+      labels: Labels to set on container.
+      working_dir: Working directory for command to run in.
+      network: Whether to enable networking in the container.
+      mac_address: MAC address.
+      exposed_ports: Exposed ports.
+      volumes: List of (in container) paths to use as volumes.
+      stop_signal: Signal to stop container.
 
-    # TODO: Figure out how to handle Mounts and Volumes parameters.  It seems
-    # like Volumes parameter were replaced by Mounts in 1.20, and the Mounts
-    # parameter has more features.  So maybe we should support mounts
-    # argument, and then generate Volumes for older API.
+    Attributes:
+      image (str): Image to create container from.
+      command (Optional[Command]): Command to run.
+      entrypoint (Optional[Command]): Container entrypoint.
+      on_build (Optional[Sequence[str]]): Trigger instructions to be executed
+        later (when used as base image for another build).
+      hostname (Optional[Hostname]): Hostname to use for the container.
+      domainname (Optional[Domainname]): Domain name to use for the container.
+      user (Optional[Username]): User inside the container.
+      attach_stdin (Optional[bool]): Attach to stdin.
+      attach_stdout (Optional[bool]): Attach to stdout.
+      attach_stderr (Optional[bool]): Attach to stderr.
+      tty (Optional[bool]): Attach standard streams to a tty.
+      open_stdin (Optional[bool]): Open stdin.
+      stdin_once (Optional[bool]): Close stdin after the client disconnects.
+      env (Optional[Env]): Environment variables.
+      labels (Optional[Mapping[str, str]]): Labels to set on container.
+      working_dir (Optional[str]): Working directory for command to run in.
+      network (Optional[bool]): Whether to enable networking in the container.
+      mac_address (Optional[MacAddress]): MAC address.
+      exposed_ports (Optional[Sequence[Port]]): Exposed ports.
+      volumes (Optional[Sequence[str])): List of (in container) paths to use
+        as volumes.
+      stop_signal (Optional[Union[int, str]]): Signal to stop container.
+    """
 
     def __init__(self,
                  image: str,
@@ -715,7 +821,7 @@ class ContainerConfig(Parameter):
                  env: Optional[Union[Env, Mapping[str, str]]]=None,
                  labels: Optional[Mapping[str, str]]=None,
                  working_dir: Optional[str]=None,
-                 network: bool=True,
+                 network: Optional[bool]=None,
                  mac_address: Optional[Union[MacAddress, str]]=None,
                  exposed_ports: Optional[Sequence[Port]]=None,
                  volumes: Optional[Sequence[str]]=None,
@@ -756,11 +862,9 @@ class ContainerConfig(Parameter):
 
     @property
     def network_disabled(self):
-        print('network_disabled()', self.network)
-        if self.network is False:
-            return True
-        else:
+        if self.network is None:
             return None
+        return not self.network
 
     @property
     def volumes_map(self):
@@ -800,21 +904,132 @@ class HostConfig(object):
     """Docker container host configuration.
 
     Arguments:
-    memory -- memory limit (bytes)
-    swap -- swap limit (bytes)
-    cpu_shares -- cpu shares relative to other containers (integer value)
-    cpu_period -- length of a cpu period (microseconds)
-    cpuset_cpus -- cgroups cpuset.cpu to use
-    cpuset_mems -- cgroups cpuset.mem to use
-    blkio_weight -- relative block io weight (10 ... 1000)
-    memory_swappiness -- memory swappiness behavior (10 ... 1000)
-    oom_kill -- whether to enable OOM killer for container or not
+      binds: List of volume bindings.
+      links: List of links to other containers.
+      lxc_config: LXC specific configurations. Only valid when using the lxc
+        execution driver.
+      port_bindings: List of port bindings, ie. container ports that exposed
+        as host ports.
+      publish_all_ports: Allocate a random host port for all exposed ports.
+      privileged: Container has full access to host.
+      read_only_rootfs: Mount container root filesystem read only.
+      dns: List of DNS servers to use.
+      dns_options: List of DNS options.
+      dns_search: List of DNS search domains.
+      extra_hosts: A list of hostname to IP mappings to add to container's
+        /etc/hosts file.
+      volumes_from: List of containers to inherit volumes from.
+      cap_add: List of kernel capabilities to add to container.
+      cap_drop: List of kernel capabilities to drop from container.
+      group_add: List of additional groups that the container process will
+        run as.
+      restart_policy: Behavior when container exits.
+      network_mode: Networking mode for the container.
+      devices: List of devices to add to container.
+      ulimits: List of ulimits to set in container.
+      security_opt: List of string values to customize labels for MLS systems,
+        such as SELinux.
+      log_config: Log configuration for container.
+      cgroup_parent: Path to cgroups under which the container's cgroup is
+        created.
+      volume_driver: Driver that this container uses to mount volumes.
+      shm_size: Size of /dev/shm in bytes.
+      memory: Memory limit in bytes.
+      swap: Swap limit in bytes.
+      memory_reservation: Memory soft limit in bytes.
+      kernel_memory: Kernel memory limit in bytes.
+      cpu_shares: CPU shares relative to other containers.
+      cpu_period: Length of a CPU period in microseconds.
+      cpu_quota: Microseconds of CPU time that the container can get in a
+        CPU period.
+      cpuset_cpus: Cgroups cpuset.cpu to use.
+      cpuset_mems: Cgroups cpuset.mem to use.
+      blkio_weight: Relative block io weight (10 ... 1000).
+      memory_swappiness: Memory swappiness behavior (10 ... 100).
+      oom_kill: Enable OOM killer for container.
+
+    Attributes:
+      binds (Optional[List[VolumeBinding]]): List of volume bindings.
+      links (Optional[List[ContainerLink]]): List of links to other containers.
+      lxc_config (Optional[Dict[str, str]]): LXC specific configurations. Only
+        valid when using the lxc execution driver.
+      port_bindings (Optional[List[PortBinding]]): List of port bindings, ie.
+        container ports that exposed as host ports.
+      publish_all_ports (Optional[bool]): Allocate a random host port for all
+        exposed ports.
+      privileged (Optional[bool]): Container has full access to host.
+      read_only_rootfs (Optional[bool]): Mount container root filesystem read
+        only.
+      dns (Optional[List[IPAddress]]): List of DNS servers to use.
+      dns_options (Optional[List[str]]): List of DNS options.
+      dns_search (Optional[List[str]]): List of DNS search domains.
+      extra_hosts (Optional[List[HostnameIPMapping]]): A list of hostname to
+        IP mappings to add to container's /etc/hosts file.
+      volumes_from (Optional[List[VolumesFrom]]): List of containers to
+        inherit volumes from.
+      cap_add (Optional[List[str]]): List of kernel capabilities to add to
+        container.
+      cap_drop (Optional[List[str]]): List of kernel capabilities to drop
+        from container.
+      group_add (Optional[List[str]]): List of additional groups that the
+        container process will run as.
+      restart_policy (Optional[RestartPolicy]): Behavior when container exits.
+      network_mode (Optional[str]): Networking mode for the container.
+      devices (Optional[List[DeviceToAdd]]): List of devices to add to
+        container.
+      ulimits (Optional[List[Ulimit]]): List of ulimits to set in container.
+      security_opt (Optional[List[str]]): List of string values to customize
+        labels for MLS systems, such as SELinux.
+      log_config (Optional[LogConfiguration]): Log configuration for container.
+      cgroup_parent (Optional[str]): Path to cgroups under which the
+        container's cgroup is created.
+      volume_driver (Optional[str]): Driver that this container uses to mount
+        volumes.
+      shm_size (Optional[int]): Size of /dev/shm in bytes.
+      memory (Optional[int]): Memory limit in bytes.
+      swap (Optional[int]): Swap limit in bytes.
+      memory_reservation (Optional[int]): Memory soft limit in bytes.
+      kernel_memory (Optional[int]): Kernel memory limit in bytes.
+      cpu_shares (Optional[int]): CPU shares relative to other containers.
+      cpu_period (Optional[int]): Length of a CPU period in microseconds.
+      cpu_quota (Optional[int]): Microseconds of CPU time that the container
+        can get in a CPU period.
+      cpuset_cpus (Optional[Cpuset]): Cgroups cpuset.cpu to use.
+      cpuset_mems (Optional[Cpuset]): Cgroups cpuset.mem to use.
+      blkio_weight (Optional[int]): Relative block io weight (10 ... 1000).
+      memory_swappiness (Optional[int]): Memory swappiness behavior
+        (10 ... 100).
+      oom_kill (Optional[bool]): Enable OOM killer for container.
     """
 
     def __init__(self,
                  binds: Optional[Sequence[VolumeBinding]]=None,
                  links: Optional[Sequence[ContainerLink]]=None,
                  lxc_conf: Optional[Mapping[str, str]]=None,
+                 port_bindings: Optional[Sequence[PortBinding]]=None,
+                 publish_all_ports: Optional[bool]=None,
+                 privileged: Optional[bool]=None,
+                 read_only_rootfs: Optional[bool]=None,
+                 dns: Optional[Sequence[IPAddress]]=None,
+                 dns_options: Optional[Sequence[str]]=None,
+                 dns_search: Optional[Sequence[str]]=None,
+                 extra_hosts: Optional[Sequence[
+                     Union[HostnameIPMapping, str]]]=None,
+                 volumes_from: Optional[Sequence[
+                     Union[VolumesFrom, str]]]=None,
+                 cap_add: Optional[Sequence[str]]=None,
+                 cap_drop: Optional[Sequence[str]]=None,
+                 group_add: Optional[Sequence[str]]=None,
+                 restart_policy: Optional[RestartPolicy]=None,
+                 network_mode: Optional[str]=None,
+                 devices: Optional[Sequence[
+                     Union[DeviceToAdd, str]]]=None,
+                 ulimits: Optional[Sequence[Ulimit]]=None,
+                 security_opt: Optional[Sequence[str]]=None,
+                 log_config: Optional[LogConfiguration]=None,
+                 cgroup_parent: Optional[str]=None,
+                 volume_driver: Optional[str]=None,
+                 shm_size: Optional[int]=None,
                  memory: Optional[int]=None,
                  swap: Optional[int]=None,
                  memory_reservation: Optional[int]=None,
@@ -826,31 +1041,7 @@ class HostConfig(object):
                  cpuset_mems: Optional[Union[Cpuset, str]]=None,
                  blkio_weight: Optional[int]=None,
                  memory_swappiness: Optional[int]=None,
-                 oom_kill: Optional[bool]=None,
-                 port_bindings: Sequence[PortBinding]=None,
-                 publish_all_ports: Optional[bool]=None,
-                 privileged: Optional[bool]=None,
-                 read_only_rootfs: Optional[bool]=None,
-                 dns: Optional[Sequence[IPAddress]]=None,
-                 dns_options: Optional[Sequence[str]]=None,
-                 dns_search: Optional[Sequence[str]]=None,
-                 extra_hosts: Optional[Sequence[
-                     Union[HostnameIPMapping, str]]]=None,
-                 group_add: Optional[Sequence[str]]=None,
-                 volumes_from: Optional[Sequence[
-                     Union[VolumesFrom, str]]]=None,
-                 cap_add: Optional[Sequence[str]]=None,
-                 cap_drop: Optional[Sequence[str]]=None,
-                 restart_policy: Optional[RestartPolicy]=None,
-                 network_mode: Optional[str]=None,
-                 devices: Optional[Sequence[
-                     Union[DeviceToAdd, str]]]=None,
-                 ulimits: Optional[Sequence[Ulimit]]=None,
-                 log_config: Optional[LogConfiguration]=None,
-                 security_opt: Optional[Sequence[str]]=None,
-                 cgroup_parent: Optional[str]=None,
-                 volume_driver: Optional[str]=None,
-                 shm_size: Optional[int]=None):
+                 oom_kill: Optional[bool]=None):
         if binds is not None:
             binds = list(binds)
         self.binds = binds
@@ -860,6 +1051,69 @@ class HostConfig(object):
         if lxc_conf is not None:
             lxc_conf = dict(lxc_conf)
         self.lxc_conf = lxc_conf
+        if port_bindings is not None:
+            port_bindings = list(port_bindings)
+        self.port_bindings = port_bindings
+        self.publish_all_ports = publish_all_ports
+        self.privileged = privileged
+        self.read_only_rootfs = read_only_rootfs
+        if dns is not None:
+            dns = [ipaddress.ip_address(ip)
+                   if isinstance(ip, str) else ip
+                   for ip in dns]
+        self.dns = dns
+        if dns_options is not None:
+            dns_options = list(dns_options)
+        self.dns_options = dns_options
+        if dns_search is not None:
+            dns_search = list(dns_search)
+        self.dns_search = dns_search
+        if extra_hosts is not None:
+            extra_hosts = list(extra_hosts)
+            for index, host in enumerate(extra_hosts):
+                if isinstance(host, str):
+                    host = host.split(':')
+                    if len(host) != 2:
+                        raise ValueError('invalid extra_hosts str value: %s' %
+                                         extra_hosts[index])
+                    extra_hosts[index] = HostnameIPMapping(*host)
+        self.extra_hosts = extra_hosts
+        if volumes_from is not None:
+            volumes_from = list(volumes_from)
+            for index, vf in enumerate(volumes_from):
+                if isinstance(vf, str):
+                    volumes_from[index] = VolumesFrom(vf)
+        self.volumes_from = volumes_from
+        if cap_add is not None:
+            cap_add = list(cap_add)
+        self.cap_add = cap_add
+        if cap_drop is not None:
+            cap_drop = list(cap_drop)
+        self.cap_drop = cap_drop
+        if group_add is not None:
+            group_add = list(group_add)
+        self.group_add = group_add
+        if restart_policy is not None:
+            if isinstance(restart_policy, str):
+                restart_policy = RestartPolicy(restart_policy)
+        self.restart_policy = restart_policy
+        self.network_mode = network_mode
+        if devices is not None:
+            devices = list(devices)
+            for index, dev in enumerate(devices):
+                if isinstance(dev, str):
+                    devices[index] = DeviceToAdd(dev)
+        self.devices = devices
+        if ulimits is not None:
+            ulimits = list(ulimits)
+        self.ulimits = ulimits
+        if security_opt is not None:
+            security_opt = list(security_opt)
+        self.security_opt = security_opt
+        self.log_config = log_config
+        self.cgroup_parent = cgroup_parent
+        self.volume_driver = volume_driver
+        self.shm_size = shm_size
         if isinstance(memory, int) and memory < 0:
             raise ValueError("'memory' limit cannot be negative: " +
                              str(memory))
@@ -911,69 +1165,6 @@ class HostConfig(object):
                 str(memory_swappiness))
         self.memory_swappiness = memory_swappiness
         self.oom_kill = oom_kill
-        if port_bindings is not None:
-            port_bindings = list(port_bindings)
-        self.port_bindings = port_bindings
-        self.publish_all_ports = publish_all_ports
-        self.privileged = privileged
-        self.read_only_rootfs = read_only_rootfs
-        if dns is not None:
-            dns = [ipaddress.ip_address(ip)
-                   if isinstance(ip, str) else ip
-                   for ip in dns]
-        self.dns = dns
-        if dns_options is not None:
-            dns_options = list(dns_options)
-        self.dns_options = dns_options
-        if dns_search is not None:
-            dns_search = list(dns_search)
-        self.dns_search = dns_search
-        if extra_hosts is not None:
-            extra_hosts = list(extra_hosts)
-            for index, host in enumerate(extra_hosts):
-                if isinstance(host, str):
-                    host = host.split(':')
-                    if len(host) != 2:
-                        raise ValueError('invalid extra_hosts str value: %s' %
-                                         extra_hosts[index])
-                    extra_hosts[index] = HostnameIPMapping(*host)
-        self.extra_hosts = extra_hosts
-        if group_add is not None:
-            group_add = list(group_add)
-        self.group_add = group_add
-        if volumes_from is not None:
-            volumes_from = list(volumes_from)
-            for index, vf in enumerate(volumes_from):
-                if isinstance(vf, str):
-                    volumes_from[index] = VolumesFrom(vf)
-        self.volumes_from = volumes_from
-        if cap_add is not None:
-            cap_add = list(cap_add)
-        self.cap_add = cap_add
-        if cap_drop is not None:
-            cap_drop = list(cap_drop)
-        self.cap_drop = cap_drop
-        if restart_policy is not None:
-            if isinstance(restart_policy, str):
-                restart_policy = RestartPolicy(restart_policy)
-        self.restart_policy = restart_policy
-        self.network_mode = network_mode
-        if devices is not None:
-            devices = list(devices)
-            for index, dev in enumerate(devices):
-                if isinstance(dev, str):
-                    devices[index] = DeviceToAdd(dev)
-        self.devices = devices
-        if ulimits is not None:
-            ulimits = list(ulimits)
-        self.ulimits = ulimits
-        if security_opt is not None:
-            security_opt = list(security_opt)
-        self.security_opt = security_opt
-        self.log_config = log_config
-        self.cgroup_parent = cgroup_parent
-        self.volume_driver = volume_driver
-        self.shm_size = shm_size
 
     @property
     def oom_kill_disable(self):

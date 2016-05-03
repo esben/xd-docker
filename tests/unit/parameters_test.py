@@ -952,9 +952,13 @@ class containerconfig_tests(unittest.case.TestCase):
         cc = ContainerConfig('foo', working_dir='/foo')
         assert cc.json() == {'Image': 'foo', 'WorkingDir': '/foo'}
 
+    def test_network_default(self):
+        cc = ContainerConfig('foo')
+        assert cc.json() == {'Image': 'foo'}
+
     def test_network_true(self):
         cc = ContainerConfig('foo', network=True)
-        assert cc.json() == {'Image': 'foo'}
+        assert cc.json() == {'Image': 'foo', 'NetworkDisabled': False}
 
     def test_network_false(self):
         cc = ContainerConfig('foo', network=False)
