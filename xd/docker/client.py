@@ -132,16 +132,17 @@ class DockerClient(object):
         """Ping the docker server."""
         self._get('/_ping')
 
-    def containers(self, all_=False):
+    def containers(self, only_running: bool = True):
         """Get list of containers.
 
         By default, only running containers are returned.
 
         Keyword arguments:
-        all_ -- return all containers if True.
+          only_running: List only running containers (if True), or all
+            containers (if False).
         """
         params = {}
-        params['all'] = all_
+        params['all'] = not only_running
         r = self._get('/containers/json', params=params)
         containers = {}
         for c in json.loads(r.text):

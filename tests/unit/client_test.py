@@ -174,12 +174,25 @@ class containers_tests(SimpleClientTestCase):
         self.assertIn('9cd87474be90', containers)
 
     @mock.patch('requests.get')
+    def test_containers_only_running(self, get_mock):
+        get_mock.return_value = requests_mock.Response(json.dumps(
+            self.response), 200)
+        containers = self.client.containers(only_running=True)
+        self.assertTrue(get_mock.called)
+        self.assertEqual(len(containers), 2)
+        for container in containers.values():
+            self.assertIsInstance(container, Container)
+            self.assertIsInstance(container.image, Image)
+        self.assertIn('8dfafdbc3a40', containers)
+        self.assertIn('9cd87474be90', containers)
+
+    @mock.patch('requests.get')
     def test_containers_all(self, get_mock):
         response = copy.deepcopy(self.response)
         response[1]['Status'] = 'Exit 0'
         get_mock.return_value = requests_mock.Response(json.dumps(
             self.response), 200)
-        containers = self.client.containers(all_=True)
+        containers = self.client.containers(only_running=False)
         self.assertTrue(get_mock.called)
         self.assertEqual(len(containers), 2)
         for container in containers.values():
