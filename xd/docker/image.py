@@ -61,7 +61,8 @@ class Image(object):
         'ContainerConfig', 'Config', 'DockerVersion', 'Size', 'VirtualSize',
         'Author', 'Created', 'RepoTags', 'RepoDigests')
 
-    def inspect(self):
+    def inspect(self) -> None:
+        """Retrieve low-level information for the image."""
         if self.id:
             name = self.id
         elif self.tags:
@@ -72,6 +73,7 @@ class Image(object):
         self._parse_response(self.INSPECT_RESPONSE, response)
 
     def build(self, **kwargs):
+        """Build image from a Dockerfile."""
         if 'tag' in kwargs:
             self.tags = [kwargs['tag']]
         else:
