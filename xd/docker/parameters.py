@@ -4,7 +4,7 @@ API parameters."""
 import collections
 import re
 
-from typing import Any, Optional, Union, Mapping, Sequence, Tuple, Dict
+from typing import Any, Optional, Union, Mapping, Sequence, Tuple, Dict, List
 import ipaddress
 
 import logging
@@ -20,7 +20,7 @@ ApiVersion = Tuple[int, int]
 __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
            'json_update',
            'Parameter',
-           'Repository', 'ContainerName',
+           'Repository', 'RepoTags', 'ContainerName',
            'Env', 'Port', 'PortBinding', 'VolumeMount', 'VolumeBinding',
            'ContainerLink', 'Cpuset',
            'Hostname', 'Domainname', 'MacAddress', 'Username',
@@ -33,7 +33,7 @@ __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
 
 def json_update(obj: Dict[str, Any], values: Dict[str, Any],
                 json_fields: Sequence[Tuple[str, Tuple[int, int], str]],
-                api_version: Optional[ApiVersion] = None):
+                api_version: Optional[ApiVersion]=None):
     """Update JSON object (dict).
 
     This function is used to update a JSON object (a dict) with name/value
@@ -78,7 +78,7 @@ class Parameter(object):
     def __str__(self):
         return str(self.json())
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         """Return Docker Remote API JSON representation.
 
         Arguments:
@@ -117,11 +117,31 @@ class Repository(Parameter):
             return
         raise ValueError('invalid repository name: %s' % repo)
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         if self.tag:
             return "%s:%s" % (self.name, self.tag)
         else:
             return self.name
+
+
+class RepoTags(Parameter):
+    """List of repository name and tags.
+
+    A RepoTags instance is used to represent a list of repository name and
+    tags.
+
+    Arguments:
+      repos: List of repository name and tags (separated by ':').
+
+    Attributes:
+      repos (List[Repository]): List of repository name and tags.
+    """
+
+    def __init__(self, repos: List[str]):
+        self.repos = [Repository(repo) for repo in repos]
+
+    def json(self, api_version: Optional[ApiVersion]=None):
+        return [str(repo) for repo in self.repos]
 
 
 class ContainerName(Parameter):
@@ -144,7 +164,7 @@ class ContainerName(Parameter):
             return
         raise ValueError('invalid container name: %s' % name)
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return self.name
 
 
@@ -173,7 +193,7 @@ class Env(Parameter):
                 if not self.KEY_RE.match(k):
                     raise ValueError('Invalid Env variable name: %s' % k)
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         if self.env is None:
             return None
         else:
@@ -194,7 +214,7 @@ class Port(Parameter):
       protocol (str): Protocol ('tcp' or 'udp').
     """
 
-    def __init__(self, port: int, protocol: str = 'tcp'):
+    def __init__(self, port: int, protocol: str='tcp'):
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -202,7 +222,7 @@ class Port(Parameter):
             raise ValueError("protocol must be either 'tcp' or 'udp'")
         self.protocol = protocol
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return '%d/%s' % (self.port, self.protocol)
 
 
@@ -225,9 +245,9 @@ class PortBinding(Parameter):
       host_port (int): Host port number (1 ... 65535).
     """
 
-    def __init__(self, port: int, protocol: str = 'tcp',
-                 host_ip: Optional[IPAddress] = None,
-                 host_port: Optional[int] = None):
+    def __init__(self, port: int, protocol: str='tcp',
+                 host_ip: Optional[IPAddress]=None,
+                 host_port: Optional[int]=None):
         if port <= 0 or port > 65535:
             raise ValueError('port must be > 0 and <= 65535')
         self.port = port
@@ -241,7 +261,7 @@ class PortBinding(Parameter):
             raise ValueError('host_port must be > 0 and <= 65535')
         self.host_port = host_port
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         host_binding = {'HostPort': str(self.host_port)}
         if self.host_ip is not None:
             host_binding['HostIp'] = str(self.host_ip)
@@ -266,14 +286,14 @@ class VolumeMount(Parameter):
       label_mode (str): SELinux label mode ('', 'z', or 'Z').
     """
 
-    def __init__(self, source: str, destination: str, ro: bool = False,
-                 label_mode: Optional[str] = None):
+    def __init__(self, source: str, destination: str, ro: bool=False,
+                 label_mode: Optional[str]=None):
         self.source = source
         self.destination = destination
         self.ro = ro
         self.label_mode = label_mode or ''
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         mode = 'ro' if self.ro else 'rw'
         if self.label_mode:
             mode += ',' + self.label_mode
@@ -304,8 +324,8 @@ class VolumeBinding(Parameter):
       ro (bool): Read-only mount.
     """
 
-    def __init__(self, container_path: str, volume: Optional[str] = None,
-                 ro: bool = False):
+    def __init__(self, container_path: str, volume: Optional[str]=None,
+                 ro: bool=False):
         if container_path == '':
             raise ValueError('invalid container_path')
         if volume == '':
@@ -319,7 +339,7 @@ class VolumeBinding(Parameter):
             self.volume = volume
         self.ro = ro
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         if not self.volume:
             return self.container_path
         if self.ro:
@@ -346,7 +366,7 @@ class ContainerLink(Parameter):
         self.name = name
         self.alias = alias
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return '%s:%s' % (self.name, self.alias)
 
 
@@ -372,7 +392,7 @@ class Cpuset(Parameter):
             raise ValueError('invalid cpuset: %s' % cpuset)
         self.cpuset = cpuset
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return self.cpuset
 
 
@@ -397,7 +417,7 @@ class Hostname(Parameter):
             raise ValueError('invalid hostname: %s' % hostname)
         self.hostname = hostname
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return self.hostname
 
 
@@ -413,7 +433,7 @@ class Domainname(Hostname):
       domainname (str): Domain name.
     """
 
-    DOMAINNAME_RE = re.compile('%s(\.%s)*$' % (
+    DOMAINNAME_RE = re.compile(r'%s(\.%s)*$' % (
         Hostname.HOSTNAME_RE.pattern[:-1], Hostname.HOSTNAME_RE.pattern[:-1]))
 
     def __init__(self, domainname: str):
@@ -421,7 +441,7 @@ class Domainname(Hostname):
             raise ValueError('invalid domainname: %s' % domainname)
         self.domainname = domainname
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return self.domainname
 
 
@@ -444,7 +464,7 @@ class MacAddress(Parameter):
             raise ValueError('invalid MAC address: %s' % addr)
         self.addr = addr
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return self.addr
 
 
@@ -467,7 +487,7 @@ class Username(Parameter):
             raise ValueError('invalid username: %s' % username)
         self.username = username
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return self.username
 
 
@@ -497,7 +517,7 @@ class HostnameIPMapping(Parameter):
         else:
             self.ip = ipaddress.ip_address(ip)
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return '%s:%s' % (self.hostname.json(api_version), self.ip)
 
 
@@ -517,13 +537,13 @@ class VolumesFrom(Parameter):
     """
 
     def __init__(self, name: Union[ContainerName, str],
-                 ro: Optional[bool] = None):
+                 ro: Optional[bool]=None):
         if isinstance(name, str):
             name = ContainerName(name)
         self.name = name
         self.ro = ro
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         if self.ro is None:
             return self.name.json(api_version)
         else:
@@ -548,7 +568,7 @@ class RestartPolicy(Parameter):
         (only present when policy is 'on-failure').
     """
 
-    def __init__(self, policy: str, maximum_retry_count: Optional[int] = None):
+    def __init__(self, policy: str, maximum_retry_count: Optional[int]=None):
         if policy not in ('always', 'unless-stopped', 'on-failure'):
             raise ValueError('invalid policy value: %s' % policy)
         self.policy = policy
@@ -560,7 +580,7 @@ class RestartPolicy(Parameter):
                 raise ValueError('maximum_retry_count must be positive')
             self.maximum_retry_count = maximum_retry_count
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         d = {'Name': self.policy}
         if self.policy == 'on-failure':
             d['MaximumRetryCount'] = self.maximum_retry_count
@@ -587,15 +607,15 @@ class DeviceToAdd(Parameter):
     """
 
     def __init__(self, path_on_host: str,
-                 path_in_container: Optional[str] = None,
-                 cgroup_permissions: str = 'rwm'):
+                 path_in_container: Optional[str]=None,
+                 cgroup_permissions: str='rwm'):
         self.path_on_host = path_on_host
         if path_in_container is None:
             path_in_container = path_on_host
         self.path_in_container = path_in_container
         self.cgroup_permissions = cgroup_permissions
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return {'PathOnHost': self.path_on_host,
                 'PathInContainer': self.path_in_container,
                 'CgroupPermissions': self.cgroup_permissions}
@@ -617,14 +637,14 @@ class Ulimit(Parameter):
       hard (str): Hard limit.
     """
 
-    def __init__(self, name: str, soft: int, hard: Optional[int] = None):
+    def __init__(self, name: str, soft: int, hard: Optional[int]=None):
         self.name = name
         self.soft = soft
         if hard is None:
             hard = soft
         self.hard = hard
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return {'Name': self.name,
                 'Soft': self.soft,
                 'Hard': self.hard}
@@ -657,7 +677,7 @@ class LogConfiguration(Parameter):
         else:
             self.config = dict(config)
 
-    def json(self, api_version: Optional[ApiVersion] = None):
+    def json(self, api_version: Optional[ApiVersion]=None):
         return {'Type': self.type, 'Config': self.config}
 
 
@@ -687,7 +707,7 @@ class CredentialAuthConfig(AuthConfig):
     """
 
     def __init__(self, username: str, password: str,
-                 email: Optional[str] = None):
+                 email: Optional[str]=None):
         self.username = username
         self.password = password
         self.email = email
@@ -836,7 +856,7 @@ class ContainerConfig(Parameter):
             raise TypeError('hostname cannot be Domainname')
         self.hostname = hostname
         if isinstance(domainname, str):
-            hostname = Domainname(domainname)
+            domainname = Domainname(domainname)
         self.domainname = domainname
         if isinstance(user, str):
             user = Username(user)
@@ -861,13 +881,13 @@ class ContainerConfig(Parameter):
         self.stop_signal = stop_signal
 
     @property
-    def network_disabled(self):
+    def _network_disabled(self):
         if self.network is None:
             return None
         return not self.network
 
     @property
-    def volumes_map(self):
+    def _volumes_map(self):
         if self.volumes is None:
             return None
         return {volume: {} for volume in self.volumes}
@@ -889,10 +909,10 @@ class ContainerConfig(Parameter):
         ('Env', (1, 14), 'env'),
         ('Labels', (1, 18), 'labels'),
         ('WorkingDir', (1, 14), 'working_dir'),
-        ('NetworkDisabled', (1, 14), 'network_disabled'),
+        ('NetworkDisabled', (1, 14), '_network_disabled'),
         ('MacAddress', (1, 15), 'mac_address'),
         ('ExposedPorts', (1, 14), 'exposed_ports'),
-        ('Volumes', (1, 14), 'volumes_map'),
+        ('Volumes', (1, 14), '_volumes_map'),
         ('StopSignal', (1, 21), 'stop_signal'),
     )
 
@@ -900,7 +920,7 @@ class ContainerConfig(Parameter):
         return json_update({}, self, self.JSON_FIELDS, api_version)
 
 
-class HostConfig(object):
+class HostConfig(Parameter):
     """Docker container host configuration.
 
     Arguments:
@@ -1167,7 +1187,7 @@ class HostConfig(object):
         self.oom_kill = oom_kill
 
     @property
-    def oom_kill_disable(self):
+    def _oom_kill_disable(self):
         if self.oom_kill is None:
             return None
         return not self.oom_kill
@@ -1182,7 +1202,7 @@ class HostConfig(object):
             return self.memory + self.swap
 
     @property
-    def port_bindings_json(self):
+    def _port_bindings_json(self):
         if self.port_bindings is None:
             return None
         bindings = {}
@@ -1205,8 +1225,8 @@ class HostConfig(object):
         ('CpusetMems', (1, 19), 'cpuset_mems'),
         ('BlkioWeight', (1, 19), 'blkio_weight'),
         ('MemorySwappiness', (1, 20), 'memory_swappiness'),
-        ('OomKillDisable', (1, 19), 'oom_kill_disable'),
-        ('PortBindings', (1, 14), 'port_bindings_json'),
+        ('OomKillDisable', (1, 19), '_oom_kill_disable'),
+        ('PortBindings', (1, 14), '_port_bindings_json'),
         ('PublishAllPorts', (1, 14), 'publish_all_ports'),
         ('Privileged', (1, 14), 'privileged'),
         ('ReadonlyRootfs', (1, 17), 'read_only_rootfs'),

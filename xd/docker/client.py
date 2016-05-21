@@ -12,7 +12,7 @@ import tarfile
 import re
 import functools
 
-from typing import Optional, Union, Sequence, Dict
+from typing import Optional, Union, Sequence, Dict, Tuple, List
 
 from xd.docker.container import Container
 from xd.docker.image import Image
@@ -46,12 +46,26 @@ class ServerError(HTTPError):
 
 
 class DockerClient(object):
-    """Docker client."""
+    """Docker client.
 
-    def __init__(self, host=None):
-        """Docker client concstructor."""
-        if host is None:
-            host = 'unix:///var/run/docker.sock'
+    A DockerClient instance is used to communicate with Docker daemon (or
+    something else that is speaking Docker Remote API).
+
+    Arguments:
+      host: URL to Docker daemon socket to connect to.
+
+    :Example:
+
+    Connect to docker daemon on localhost TCP socket:
+
+    >>> docker = DockerClient('tcp://127.0.0.1:2375')
+
+    Connect to docker daemon on UNIX domain socket:
+
+    >>> docker = DockerClient('unix:///var/run/docker.sock')
+    """
+
+    def __init__(self, host: str = 'unix:///var/run/docker.sock'):
         if host.startswith('unix://'):
             host = 'http+unix://' + urllib.parse.quote_plus(host[7:])
         elif host.startswith('tcp://'):
@@ -116,8 +130,15 @@ class DockerClient(object):
         self._check_http_status_code(url, r.status_code)
         return r
 
-    def version(self):
-        """Get Docker Remote API version."""
+    def version(self) -> Tuple[int, int]:
+        """Get Docker Remote API version.
+
+        Raises:
+          ServerError: Server error.
+
+        Returns:
+          Major/minor version number of Docker daemon (Docker Remote API).
+        """
         r = self._get('/version')
         version = json.loads(r.text)
         return version
@@ -128,60 +149,67 @@ class DockerClient(object):
         version = self.version()
         return tuple([int(i) for i in version['ApiVersion'].split('.')])
 
-    def ping(self):
-        """Ping the docker server."""
+    def ping(self) -> None:
+        """Ping the docker server.
+
+        Raises:
+          ServerError: Server error.
+        """
         self._get('/_ping')
 
-    def containers(self, all_=False):
+    def containers(self, only_running: bool = True) -> List[Container]:
         """Get list of containers.
 
         By default, only running containers are returned.
 
         Keyword arguments:
-        all_ -- return all containers if True.
+          only_running: List only running containers (if True), or all
+            containers (if False).
+
+        Raises:
+          ClientError: Bad parameter.
+          ServerError: Server error.
+
+        Returns:
+          List of containers.
         """
         params = {}
-        params['all'] = all_
+        params['all'] = not only_running
         r = self._get('/containers/json', params=params)
-        containers = {}
-        for c in json.loads(r.text):
-            containers[c['Id']] = Container(self, list_response=c)
-        return containers
+        containers = json.loads(r.text)
+        return [Container(self, list_response=c) for c in containers]
 
-    def images(self):
+    def images(self) -> List[Image]:
         """Get list of images.
 
-        Returns list of Image instances of all images.
-        """
-        r = self._get('/images/json')
-        images = {}
-        for c in json.loads(r.text):
-            images[c['Id']] = Image(
-                self, id_=c['Id'], created=c['Created'], tags=c['RepoTags'],
-                size=c['Size'], virtual_size=c['VirtualSize'])
-        return images
+        Images returned does only contain partial information.  To obtain
+        detailed information, use `image_inspect` or `Image.inspect` on the
+        `Image` in question.
 
-    def image_inspect(self, name, raw=False):
+        Raises:
+          ServerError: Server error.
+
+        Returns:
+          List of images.
+        """
+        response = self._get('/images/json')
+        images = json.loads(response.text)
+        return [Image(self, list_response=image) for image in images]
+
+    def image_inspect_raw(self, name: str) -> Dict:
+        r = self._get('/images/{}/json'.format(name))
+        return json.loads(r.text)
+
+    def image_inspect(self, name: str) -> Image:
         """Get image with low-level information.
 
-        Get low-level information of a named image.  Returns Image
-        instance with the information.
+        Get low-level information of a named image.  Returns `Image` instance
+        with the information.
 
         Arguments:
-        name -- name of image.
-
-        Keyword arguments:
-        raw -- if True, return the low-level image information in raw format
-               instaed of Image instance.
+          name: name of image.
         """
-        r = self._get('/images/{}/json'.format(name))
-        i = json.loads(r.text)
-        if raw:
-            return i
-        else:
-            return Image(
-                self, id_=i['Id'], created=i['Created'], size=i['Size'],
-                parent=i['Parent'])
+        return Image(self, inspect_response=self.image_inspect_raw(name))
 
     def image_build(self, context: str,
                     output=('error', 'stream', 'status'),
@@ -194,29 +222,27 @@ class DockerClient(object):
                     host_config: Optional[HostConfig]=None,
                     registry_config: Optional[RegistryAuthConfig]=None,
                     buildargs: Optional[Dict[str, str]]=None):
-        """Build image.
+        """Build an image from a Dockerfile.
 
         Build image from a given context or stand-alone Dockerfile.
 
         Arguments:
-        context -- path to directory containing build context, or path to a
-                   stand-alone Dockerfile.
-
-        Keyword arguments:
-        output -- tuple/list of with type of output information to allow
-                  (Default: ('stream', 'status', 'error')).
-        dockerfile -- path to dockerfile in build context.
-        tag -- repository name and tag to be applied to the resulting image.
-        cache -- use the cache when building the image (default: True).
-        pull -- attempt to pull the image even if an older image exists locally
-                (default: False).
-        rm -- False/True. Remove intermediate containers after a
-              successful build (default: True).
-        force_rm -- False/True. Always remove intermediate containers after
-                    build (default: False).
-        host_config -- HostConfig instance.
-        registry_config -- RegistryAuthConfig instance.
-        buildargs -- build-time environment variables.
+          context: path to directory containing build context, or path to a
+            stand-alone Dockerfile.
+          output: tuple/list of with type of output information to allow
+            (Default: ('stream', 'status', 'error')).
+          dockerfile: path to dockerfile in build context.
+          tag: repository name and tag to be applied to the resulting image.
+          cache: use the cache when building the image (default: True).
+          pull: attempt to pull the image even if an older image exists locally
+            (default: False).
+          rm: False/True. Remove intermediate containers after a
+            successful build (default: True).
+          force_rm: False/True. Always remove intermediate containers after
+            build (default: False).
+          host_config: HostConfig instance.
+          registry_config: RegistryAuthConfig instance.
+          buildargs: build-time environment variables.
         """
 
         # Handle convenience argument types
@@ -294,9 +320,9 @@ class DockerClient(object):
         Create an image by pulling it from a registry.
 
         Arguments:
-        name -- name of the image to pull
-        output -- tuple/list of with type of output information to allow
-                  (Default: ('stream', 'status', 'error')).
+          name: name of the image to pull.
+          output: tuple/list of with type of output information to allow
+            (Default: ('stream', 'status', 'error')).
         """
         params = {'fromImage': name}
         headers = {'content-type': 'application/json'}
@@ -316,7 +342,7 @@ class DockerClient(object):
         Remove the image name from the filesystem.
 
         Arguments:
-        name -- name of the image to remove
+          name: name of the image to remove.
         """
         r = self._delete('/images/{}'.format(name))
         return json.loads(r.text)
@@ -327,8 +353,8 @@ class DockerClient(object):
         Add tag to an existing image.
 
         Arguments:
-        image -- image to add tag to
-        tag -- name of tag (REPOSITORY or REPOSITORY:TAG)
+          image: image to add tag to.
+          tag: name of tag (REPOSITORY or REPOSITORY:TAG).
         """
         params = {}
         if ':' in tag:
@@ -349,10 +375,10 @@ class DockerClient(object):
         Create a new container based on existing image.
 
         Arguments:
-        name -- name to assign to container
-        mounts -- mount points in the container (list of strings)
-        config -- ContainerConfig instance
-        host_config -- HostConfig instance
+          name: name to assign to container.
+          mounts: mount points in the container (list of strings).
+          config: ContainerConfig instance.
+          host_config: HostConfig instance.
         """
 
         # Handle convenience argument types

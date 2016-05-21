@@ -768,6 +768,28 @@ class repository_tests(unittest.case.TestCase):
             Repository('foo:bar:x')
 
 
+class repotags_tests(unittest.case.TestCase):
+
+    def test_no_tags(self):
+        repo_tags = RepoTags([])
+        assert repo_tags.repos == []
+        assert repo_tags.json() == []
+
+    def test_1(self):
+        repo_tags = RepoTags(['busybox:latest'])
+        assert len(repo_tags.repos) == 1
+        assert isinstance(repo_tags.repos[0], Repository)
+        assert repo_tags.repos[0].name == 'busybox'
+        assert repo_tags.repos[0].tag == 'latest'
+        assert repo_tags.json() == ['busybox:latest']
+
+    def test_2(self):
+        repo_tags = RepoTags(['busybox:latest', 'foo:bar'])
+        assert len(repo_tags.repos) == 2
+        for repo in repo_tags.repos:
+            assert isinstance(repo, Repository)
+
+
 class containername_tests(unittest.case.TestCase):
 
     def test_name(self):
