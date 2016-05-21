@@ -71,16 +71,3 @@ class Image(object):
             raise AnonymousImage()
         response = self.client.image_inspect_raw(name)
         self._parse_response(self.INSPECT_RESPONSE, response)
-
-    def build(self, **kwargs):
-        """Build image from a Dockerfile."""
-        if 'tag' in kwargs:
-            self.tags = [kwargs['tag']]
-        else:
-            self.tags = []
-        self.id = self.client.image_build(
-            self.context, dockerfile=self.dockerfile, **kwargs)
-        self.created = None
-        self.virtual_size = None
-        self.parent = None
-        self.size = None
