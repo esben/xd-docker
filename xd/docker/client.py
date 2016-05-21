@@ -12,7 +12,7 @@ import tarfile
 import re
 import functools
 
-from typing import Optional, Union, Sequence, Dict
+from typing import Optional, Union, Sequence, Dict, Tuple, List
 
 from xd.docker.container import Container
 from xd.docker.image import Image
@@ -157,7 +157,7 @@ class DockerClient(object):
         """
         self._get('/_ping')
 
-    def containers(self, only_running: bool = True):
+    def containers(self, only_running: bool = True) -> List[Container]:
         """Get list of containers.
 
         By default, only running containers are returned.
@@ -165,14 +165,19 @@ class DockerClient(object):
         Keyword arguments:
           only_running: List only running containers (if True), or all
             containers (if False).
+
+        Raises:
+          ClientError: Bad parameter.
+          ServerError: Server error.
+
+        Returns:
+          List of containers.
         """
         params = {}
         params['all'] = not only_running
         r = self._get('/containers/json', params=params)
-        containers = {}
-        for c in json.loads(r.text):
-            containers[c['Id']] = Container(self, list_response=c)
-        return containers
+        containers = json.loads(r.text)
+        return [Container(self, list_response=c) for c in containers]
 
     def images(self):
         """Get list of images.
