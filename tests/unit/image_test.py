@@ -19,19 +19,14 @@ class tests(unittest.case.TestCase):
         image = Image(self.client)
         self.assertIsInstance(image, Image)
 
-    def test_init_args_created(self):
-        image = Image(self.client,
-                            id_='123456789abcdef', created=1234567)
-        self.assertIsInstance(image, Image)
-
     def test_init_args_dockerfile(self):
         image = Image(self.client,
-                            context='/tmp/image-ctx', dockerfile='Dockerfile')
+                      context='/tmp/image-ctx', dockerfile='Dockerfile')
         self.assertIsInstance(image, Image)
 
     @mock.patch('requests.get')
     def test_inspect_by_id(self, get_mock):
-        image = Image(self.client, id_='b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc')
+        image = Image(self.client, 'b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc')
         get_mock.return_value = requests_mock.Response('''\
 {
   "Created": "2013-03-23T22:24:18.818426-07:00",

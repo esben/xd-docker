@@ -417,7 +417,7 @@ class image_inspect_tests(SimpleClientTestCase):
     def test_image_inspect_raw(self, get_mock):
         get_mock.return_value = requests_mock.Response(json.dumps(
             self.response), 200)
-        image = self.client.image_inspect('foobar', raw=True)
+        image = self.client.image_inspect_raw('foobar')
         self.assertTrue(get_mock.called)
         self.assertIsInstance(image, dict)
         self.assertEqual(image['Size'], 6824592)

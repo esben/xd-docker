@@ -192,27 +192,20 @@ class DockerClient(object):
         images = json.loads(response.text)
         return [Image(self, list_response=image) for image in images]
 
-    def image_inspect(self, name, raw=False):
+    def image_inspect_raw(self, name: str) -> Dict:
+        r = self._get('/images/{}/json'.format(name))
+        return json.loads(r.text)
+
+    def image_inspect(self, name: str) -> Image:
         """Get image with low-level information.
 
-        Get low-level information of a named image.  Returns Image
-        instance with the information.
+        Get low-level information of a named image.  Returns Image instance
+        with the information.
 
         Arguments:
-        name -- name of image.
-
-        Keyword arguments:
-        raw -- if True, return the low-level image information in raw format
-               instaed of Image instance.
+          name: name of image.
         """
-        r = self._get('/images/{}/json'.format(name))
-        i = json.loads(r.text)
-        if raw:
-            return i
-        else:
-            return Image(
-                self, id_=i['Id'], created=i['Created'], size=i['Size'],
-                parent=i['Parent'])
+        return Image(self, inspect_response=self.image_inspect_raw(name))
 
     def image_build(self, context: str,
                     output=('error', 'stream', 'status'),
