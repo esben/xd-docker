@@ -4,7 +4,7 @@ API parameters."""
 import collections
 import re
 
-from typing import Any, Optional, Union, Mapping, Sequence, Tuple, Dict
+from typing import Any, Optional, Union, Mapping, Sequence, Tuple, Dict, List
 import ipaddress
 
 import logging
@@ -20,7 +20,7 @@ ApiVersion = Tuple[int, int]
 __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
            'json_update',
            'Parameter',
-           'Repository', 'ContainerName',
+           'Repository', 'RepoTags', 'ContainerName',
            'Env', 'Port', 'PortBinding', 'VolumeMount', 'VolumeBinding',
            'ContainerLink', 'Cpuset',
            'Hostname', 'Domainname', 'MacAddress', 'Username',
@@ -122,6 +122,26 @@ class Repository(Parameter):
             return "%s:%s" % (self.name, self.tag)
         else:
             return self.name
+
+
+class RepoTags(Parameter):
+    """List of repository name and tags.
+
+    A RepoTags instance is used to represent a list of repository name and
+    tags.
+
+    Arguments:
+      repos: List of repository name and tags (separated by ':').
+
+    Attributes:
+      repos (List[Repository]): List of repository name and tags.
+    """
+
+    def __init__(self, repos: List[str]):
+        self.repos = [Repository(repo) for repo in repos]
+
+    def json(self, api_version: Optional[ApiVersion]=None):
+        return [str(repo) for repo in self.repos]
 
 
 class ContainerName(Parameter):
