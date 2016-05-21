@@ -46,12 +46,26 @@ class ServerError(HTTPError):
 
 
 class DockerClient(object):
-    """Docker client."""
+    """Docker client.
 
-    def __init__(self, host=None):
-        """Docker client concstructor."""
-        if host is None:
-            host = 'unix:///var/run/docker.sock'
+    A DockerClient instance is used to communicate with Docker daemon (or
+    something else that is speaking Docker Remote API).
+
+    Arguments:
+      host: URL to Docker daemon socket to connect to.
+
+    :Example:
+
+    Connect to docker daemon on localhost TCP socket:
+
+    >>> docker = DockerClient('tcp://127.0.0.1:2375')
+
+    Connect to docker daemon on UNIX domain socket:
+
+    >>> docker = DockerClient('unix:///var/run/docker.sock')
+    """
+
+    def __init__(self, host: str = 'unix:///var/run/docker.sock'):
         if host.startswith('unix://'):
             host = 'http+unix://' + urllib.parse.quote_plus(host[7:])
         elif host.startswith('tcp://'):
@@ -116,8 +130,15 @@ class DockerClient(object):
         self._check_http_status_code(url, r.status_code)
         return r
 
-    def version(self):
-        """Get Docker Remote API version."""
+    def version(self) -> Tuple[int, int]:
+        """Get Docker Remote API version.
+
+        Raises:
+          ServerError: Server error.
+
+        Returns:
+          Major/minor version number of Docker daemon (Docker Remote API).
+        """
         r = self._get('/version')
         version = json.loads(r.text)
         return version
@@ -128,8 +149,12 @@ class DockerClient(object):
         version = self.version()
         return tuple([int(i) for i in version['ApiVersion'].split('.')])
 
-    def ping(self):
-        """Ping the docker server."""
+    def ping(self) -> None:
+        """Ping the docker server.
+
+        Raises:
+          ServerError: Server error.
+        """
         self._get('/_ping')
 
     def containers(self, only_running: bool = True):
