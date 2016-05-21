@@ -182,6 +182,10 @@ class DockerClient(object):
     def images(self) -> List[Image]:
         """Get list of images.
 
+        Images returned does only contain partial information.  To obtain
+        detailed information, use `image_inspect` or `Image.inspect` on the
+        `Image` in question.
+
         Raises:
           ServerError: Server error.
 
@@ -199,7 +203,7 @@ class DockerClient(object):
     def image_inspect(self, name: str) -> Image:
         """Get image with low-level information.
 
-        Get low-level information of a named image.  Returns Image instance
+        Get low-level information of a named image.  Returns `Image` instance
         with the information.
 
         Arguments:
@@ -218,29 +222,27 @@ class DockerClient(object):
                     host_config: Optional[HostConfig]=None,
                     registry_config: Optional[RegistryAuthConfig]=None,
                     buildargs: Optional[Dict[str, str]]=None):
-        """Build image.
+        """Build an image from a Dockerfile.
 
         Build image from a given context or stand-alone Dockerfile.
 
         Arguments:
-        context -- path to directory containing build context, or path to a
-                   stand-alone Dockerfile.
-
-        Keyword arguments:
-        output -- tuple/list of with type of output information to allow
-                  (Default: ('stream', 'status', 'error')).
-        dockerfile -- path to dockerfile in build context.
-        tag -- repository name and tag to be applied to the resulting image.
-        cache -- use the cache when building the image (default: True).
-        pull -- attempt to pull the image even if an older image exists locally
-                (default: False).
-        rm -- False/True. Remove intermediate containers after a
-              successful build (default: True).
-        force_rm -- False/True. Always remove intermediate containers after
-                    build (default: False).
-        host_config -- HostConfig instance.
-        registry_config -- RegistryAuthConfig instance.
-        buildargs -- build-time environment variables.
+          context: path to directory containing build context, or path to a
+            stand-alone Dockerfile.
+          output: tuple/list of with type of output information to allow
+            (Default: ('stream', 'status', 'error')).
+          dockerfile: path to dockerfile in build context.
+          tag: repository name and tag to be applied to the resulting image.
+          cache: use the cache when building the image (default: True).
+          pull: attempt to pull the image even if an older image exists locally
+            (default: False).
+          rm: False/True. Remove intermediate containers after a
+            successful build (default: True).
+          force_rm: False/True. Always remove intermediate containers after
+            build (default: False).
+          host_config: HostConfig instance.
+          registry_config: RegistryAuthConfig instance.
+          buildargs: build-time environment variables.
         """
 
         # Handle convenience argument types
@@ -318,9 +320,9 @@ class DockerClient(object):
         Create an image by pulling it from a registry.
 
         Arguments:
-        name -- name of the image to pull
-        output -- tuple/list of with type of output information to allow
-                  (Default: ('stream', 'status', 'error')).
+          name: name of the image to pull.
+          output: tuple/list of with type of output information to allow
+            (Default: ('stream', 'status', 'error')).
         """
         params = {'fromImage': name}
         headers = {'content-type': 'application/json'}
@@ -340,7 +342,7 @@ class DockerClient(object):
         Remove the image name from the filesystem.
 
         Arguments:
-        name -- name of the image to remove
+          name: name of the image to remove.
         """
         r = self._delete('/images/{}'.format(name))
         return json.loads(r.text)
@@ -351,8 +353,8 @@ class DockerClient(object):
         Add tag to an existing image.
 
         Arguments:
-        image -- image to add tag to
-        tag -- name of tag (REPOSITORY or REPOSITORY:TAG)
+          image: image to add tag to.
+          tag: name of tag (REPOSITORY or REPOSITORY:TAG).
         """
         params = {}
         if ':' in tag:
@@ -373,10 +375,10 @@ class DockerClient(object):
         Create a new container based on existing image.
 
         Arguments:
-        name -- name to assign to container
-        mounts -- mount points in the container (list of strings)
-        config -- ContainerConfig instance
-        host_config -- HostConfig instance
+          name: name to assign to container.
+          mounts: mount points in the container (list of strings).
+          config: ContainerConfig instance.
+          host_config: HostConfig instance.
         """
 
         # Handle convenience argument types
