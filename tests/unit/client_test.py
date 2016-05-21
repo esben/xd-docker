@@ -361,19 +361,13 @@ class images_tests(SimpleClientTestCase):
         get_mock.return_value = requests_mock.Response(json.dumps(
             self.response), 200)
         images = self.client.images()
-        self.assertTrue(get_mock.called)
-        self.assertEqual(len(images), 2)
-        for image in images.values():
-            self.assertIsInstance(image, Image)
-        self.assertIn(
-            '8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c',
-            images)
-        self.assertIn(
-            'b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc',
-            images)
-        self.assertEqual(images[
-            '8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c'
-        ].size, 131506275)
+        assert get_mock.called is True
+        assert len(images) == 2
+        for image in images:
+            assert isinstance(image, Image)
+        assert images[0].id == '8dbd9e392a964056420e5d58ca5cc376ef18e2de93b5cc90e868a1bbc8318c1c'
+        assert images[0].size == 131506275
+        assert images[1].id == 'b750fe79269d2ec9a3c593ef05b4332b1d1a02a62b4accb2c21d589ff2f5f2dc'
 
 
 class image_inspect_tests(SimpleClientTestCase):

@@ -179,18 +179,18 @@ class DockerClient(object):
         containers = json.loads(r.text)
         return [Container(self, list_response=c) for c in containers]
 
-    def images(self):
+    def images(self) -> List[Image]:
         """Get list of images.
 
-        Returns list of Image instances of all images.
+        Raises:
+          ServerError: Server error.
+
+        Returns:
+          List of images.
         """
-        r = self._get('/images/json')
-        images = {}
-        for c in json.loads(r.text):
-            images[c['Id']] = Image(
-                self, id_=c['Id'], created=c['Created'], tags=c['RepoTags'],
-                size=c['Size'], virtual_size=c['VirtualSize'])
-        return images
+        response = self._get('/images/json')
+        images = json.loads(response.text)
+        return [Image(self, list_response=image) for image in images]
 
     def image_inspect(self, name, raw=False):
         """Get image with low-level information.
