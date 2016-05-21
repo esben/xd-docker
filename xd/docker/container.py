@@ -42,18 +42,19 @@ class Container(object):
             self._parse_inspect_response(inspect_response)
 
     LIST_RESPONSE_ATTRS = (
-        'Id', 'Names', 'Image', 'Command', 'Created', 'Status', 'Ports',
+        'Id', 'Names', 'Command', 'Created', 'Status', 'Ports',
         'Labels', 'SizeRW', 'SizeRootFs')
 
     def _parse_list_response(self, response):
+        image_name = response['Image']
+        image_id = response.get('ImageID')
+        self.image = Image(self.client, image_id, tags=[image_name])
         for name in self.LIST_RESPONSE_ATTRS:
             try:
                 value = response[name]
             except KeyError:
                 continue
-            if name == 'Image':
-                value = Image(self.client, tags=[value])
-            elif name == 'Names':
+            if name == 'Names':
                 assert isinstance(value, list)
                 assert len(value) == 1
                 (value,) = value
