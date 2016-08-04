@@ -347,21 +347,30 @@ class DockerClient(object):
         r = self._delete('/images/{}'.format(name))
         return json.loads(r.text)
 
-    def image_tag(self, image, tag, force=False):
+    def image_tag(self, image,
+                  tag: Optional[Union[Repository, str]]=None,
+                  force: Optional[bool]=None):
         """Tag an image.
 
         Add tag to an existing image.
 
         Arguments:
           image: image to add tag to.
-          tag: name of tag (REPOSITORY or REPOSITORY:TAG).
+          tag: repository name and optionally tag.
+          force: force creation of tag.
         """
+        # Handle convenience argument types
+        if isinstance(tag, str):
+            tag = Repository(tag)
+
         params = {}
-        if ':' in tag:
-            params['repo'], params['tag'] = tag.split(':', 1)
-        else:
-            params['repo'] = tag
-        params['force'] = 1 if force else 0
+        params['repo'] = tag.name
+        if tag.tag is not None:
+            params['tag'] = tag.tag
+        if isinstance(force, bool):
+            json_update(params, {'force': force},
+                        (('force', 'force', (None, (1, 23))),),
+                        self.api_version)
         self._post('/images/{}/tag'.format(image), params=params)
 
     def container_create(
