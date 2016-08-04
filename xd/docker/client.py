@@ -281,23 +281,23 @@ class DockerClient(object):
         if force_rm:
             rm = None
         arg_fields = (
-            ('dockerfile', (1, 17), 'dockerfile'),
-            ('t', (1, 14), 'tag'),
-            ('nocache', (1, 14), 'no_cache'),
-            ('pull', (1, 16), 'pull'),
-            ('rm', (1, 16), 'rm'),
-            ('forcerm', (1, 16), 'force_rm'),
-            ('buildargs', (1, 21), 'buildargs'),
+            ('dockerfile', 'dockerfile', (1, 17)),
+            ('t', 'tag', (1, 14)),
+            ('nocache', 'no_cache', (1, 14)),
+            ('pull', 'pull', (1, 16)),
+            ('rm', 'rm', (1, 16)),
+            ('forcerm', 'force_rm', (1, 16)),
+            ('buildargs', 'buildargs', (1, 21)),
             )
         json_update(query_params, locals(), arg_fields, self.api_version)
         host_config_fields = (
-            ('memory', (1, 18), 'memory'),
-            ('memswap', (1, 18), 'memory_swap'),
-            ('cpushares', (1, 18), 'cpu_shares'),
-            ('cpusetcpus', (1, 18), 'cpuset_cpus'),
-            ('cpuperiod', (1, 19), 'cpu_period'),
-            ('cpuquota', (1, 19), 'cpu_quota'),
-            ('shmsize', (1, 22), 'shm_size'),
+            ('memory', 'memory', (1, 18)),
+            ('memswap', 'memory_swap', (1, 18)),
+            ('cpushares', 'cpu_shares', (1, 18)),
+            ('cpusetcpus', 'cpuset_cpus', (1, 18)),
+            ('cpuperiod', 'cpu_period', (1, 19)),
+            ('cpuquota', 'cpu_quota', (1, 19)),
+            ('shmsize', 'shm_size', (1, 22)),
             )
         if host_config:
             json_update(query_params, host_config, host_config_fields,
@@ -387,7 +387,7 @@ class DockerClient(object):
 
         query_params = {}
         arg_fields = (
-            ('name', (1, 14), 'name'),
+            ('name', 'name', (1, 14)),
             )
         json_update(query_params, locals(), arg_fields, self.api_version)
 
