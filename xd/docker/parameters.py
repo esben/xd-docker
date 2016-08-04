@@ -47,7 +47,7 @@ def json_update(obj: Dict[str, Any], values: Dict[str, Any],
         including information on which API version they are supported in.
       api_version: API version to update for.
     """
-    for json_name, value_name, min_version in json_fields:
+    for json_name, value_name, version_limit in json_fields:
         if isinstance(values, dict):
             value = values.get(value_name)
         else:
@@ -64,10 +64,13 @@ def json_update(obj: Dict[str, Any], values: Dict[str, Any],
                      for v in value]
         if value is None:
             continue
-        if api_version and api_version < min_version:
-            print(json_name, value)
-            raise ValueError('%s not supported by Remote API %s' % (
-                json_name, '.'.join([str(i) for i in api_version])))
+        if version_limit is not None:
+            min_version, max_version = version_limit
+            if api_version and (
+                    (min_version and api_version < min_version) or
+                    (max_version and api_version > max_version)):
+                raise ValueError('%s not supported by Remote API %s' % (
+                    json_name, '.'.join([str(i) for i in api_version])))
         obj[json_name] = value
     return obj
 
@@ -893,27 +896,27 @@ class ContainerConfig(Parameter):
         return {volume: {} for volume in self.volumes}
 
     JSON_FIELDS = (
-        ('Image', 'image', (1, 14)),
-        ('Cmd', 'command', (1, 14)),
-        ('Entrypoint', 'entrypoint', (1, 15)),
-        ('OnBuild', 'on_build', (1, 16)),
-        ('Hostname', 'hostname', (1, 14)),
-        ('Domainname', 'domainname', (1, 14)),
-        ('User', 'user', (1, 14)),
-        ('AttachStdin', 'attach_stdin', (1, 14)),
-        ('AttachStdout', 'attach_stdout', (1, 14)),
-        ('AttachStderr', 'attach_stderr', (1, 14)),
-        ('Tty', 'tty', (1, 14)),
-        ('OpenStdin', 'open_stdin', (1, 14)),
-        ('StdinOnce', 'stdin_once', (1, 14)),
-        ('Env', 'env', (1, 14)),
-        ('Labels', 'labels', (1, 18)),
-        ('WorkingDir', 'working_dir', (1, 14)),
-        ('NetworkDisabled', '_network_disabled', (1, 14)),
-        ('MacAddress', 'mac_address', (1, 15)),
-        ('ExposedPorts', 'exposed_ports', (1, 14)),
-        ('Volumes', '_volumes_map', (1, 14)),
-        ('StopSignal', 'stop_signal', (1, 21)),
+        ('Image', 'image', None),
+        ('Cmd', 'command', None),
+        ('Entrypoint', 'entrypoint', ((1, 15), None)),
+        ('OnBuild', 'on_build', ((1, 16), None)),
+        ('Hostname', 'hostname', None),
+        ('Domainname', 'domainname', None),
+        ('User', 'user', None),
+        ('AttachStdin', 'attach_stdin', None),
+        ('AttachStdout', 'attach_stdout', None),
+        ('AttachStderr', 'attach_stderr', None),
+        ('Tty', 'tty', None),
+        ('OpenStdin', 'open_stdin', None),
+        ('StdinOnce', 'stdin_once', None),
+        ('Env', 'env', None),
+        ('Labels', 'labels', ((1, 18), None)),
+        ('WorkingDir', 'working_dir', None),
+        ('NetworkDisabled', '_network_disabled', None),
+        ('MacAddress', 'mac_address', ((1, 15), None)),
+        ('ExposedPorts', 'exposed_ports', None),
+        ('Volumes', '_volumes_map', None),
+        ('StopSignal', 'stop_signal', ((1, 21), None)),
     )
 
     def json(self, api_version: Tuple[int, int]=(1, 14)):
@@ -1211,42 +1214,42 @@ class HostConfig(Parameter):
         return bindings
 
     JSON_FIELDS = (
-        ('Binds', 'binds', (1, 14)),
-        ('Links', 'links', (1, 14)),
-        ('LxcConf', 'lxc_conf', (1, 14)),
-        ('Memory', 'memory', (1, 18)),
-        ('MemorySwap', 'memory_swap', (1, 18)),
-        ('MemoryReservation', 'memory_reservation', (1, 21)),
-        ('KernelMemory', 'kernel_memory', (1, 21)),
-        ('CpuShares', 'cpu_shares', (1, 18)),
-        ('CpuPeriod', 'cpu_period', (1, 19)),
-        ('CpuQuota', 'cpu_quota', (1, 19)),
-        ('CpusetCpus', 'cpuset_cpus', (1, 18)),
-        ('CpusetMems', 'cpuset_mems', (1, 19)),
-        ('BlkioWeight', 'blkio_weight', (1, 19)),
-        ('MemorySwappiness', 'memory_swappiness', (1, 20)),
-        ('OomKillDisable', '_oom_kill_disable', (1, 19)),
-        ('PortBindings', '_port_bindings_json', (1, 14)),
-        ('PublishAllPorts', 'publish_all_ports', (1, 14)),
-        ('Privileged', 'privileged', (1, 14)),
-        ('ReadonlyRootfs', 'read_only_rootfs', (1, 17)),
-        ('Dns', 'dns', (1, 14)),
-        ('DnsOptions', 'dns_options', (1, 21)),
-        ('DnsSearch', 'dns_search', (1, 15)),
-        ('ExtraHosts', 'extra_hosts', (1, 15)),
-        ('GroupAdd', 'group_add', (1, 20)),
-        ('VolumesFrom', 'volumes_from', (1, 14)),
-        ('CapAdd', 'cap_add', (1, 14)),
-        ('CapDrop', 'cap_drop', (1, 14)),
-        ('RestartPolicy', 'restart_policy', (1, 15)),
-        ('NetworkMode', 'network_mode', (1, 15)),
-        ('Devices', 'devices', (1, 15)),
-        ('Ulimits', 'ulimits', (1, 18)),
-        ('LogConfig', 'log_config', (1, 18)),
-        ('SecurityOpt', 'security_opt', (1, 17)),
-        ('CgroupParent', 'cgroup_parent', (1, 18)),
-        ('VolumeDriver', 'volume_driver', (1, 21)),
-        ('ShmSize', 'shm_size', (1, 22)),
+        ('Binds', 'binds', None),
+        ('Links', 'links', None),
+        ('LxcConf', 'lxc_conf', None),
+        ('Memory', 'memory', ((1, 18), None)),
+        ('MemorySwap', 'memory_swap', ((1, 18), None)),
+        ('MemoryReservation', 'memory_reservation', ((1, 21), None)),
+        ('KernelMemory', 'kernel_memory', ((1, 21), None)),
+        ('CpuShares', 'cpu_shares', ((1, 18), None)),
+        ('CpuPeriod', 'cpu_period', ((1, 19), None)),
+        ('CpuQuota', 'cpu_quota', ((1, 19), None)),
+        ('CpusetCpus', 'cpuset_cpus', ((1, 18), None)),
+        ('CpusetMems', 'cpuset_mems', ((1, 19), None)),
+        ('BlkioWeight', 'blkio_weight', ((1, 19), None)),
+        ('MemorySwappiness', 'memory_swappiness', ((1, 20), None)),
+        ('OomKillDisable', '_oom_kill_disable', ((1, 19), None)),
+        ('PortBindings', '_port_bindings_json', None),
+        ('PublishAllPorts', 'publish_all_ports', None),
+        ('Privileged', 'privileged', None),
+        ('ReadonlyRootfs', 'read_only_rootfs', ((1, 17), None)),
+        ('Dns', 'dns', None),
+        ('DnsOptions', 'dns_options', ((1, 21), None)),
+        ('DnsSearch', 'dns_search', ((1, 15), None)),
+        ('ExtraHosts', 'extra_hosts', ((1, 15), None)),
+        ('GroupAdd', 'group_add', ((1, 20), None)),
+        ('VolumesFrom', 'volumes_from', None),
+        ('CapAdd', 'cap_add', None),
+        ('CapDrop', 'cap_drop', None),
+        ('RestartPolicy', 'restart_policy', ((1, 15), None)),
+        ('NetworkMode', 'network_mode', ((1, 15), None)),
+        ('Devices', 'devices', ((1, 15), None)),
+        ('Ulimits', 'ulimits', ((1, 18), None)),
+        ('LogConfig', 'log_config', ((1, 18), None)),
+        ('SecurityOpt', 'security_opt', ((1, 17), None)),
+        ('CgroupParent', 'cgroup_parent', ((1, 18), None)),
+        ('VolumeDriver', 'volume_driver', ((1, 21), None)),
+        ('ShmSize', 'shm_size', ((1, 22), None)),
     )
 
     def json(self, api_version: Tuple[int, int]=(1, 14)):
