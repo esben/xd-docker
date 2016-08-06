@@ -384,9 +384,9 @@ class DockerClient(object):
         Create a new container based on existing image.
 
         Arguments:
+          config: ContainerConfig instance.
           name: name to assign to container.
           mounts: mount points in the container (list of strings).
-          config: ContainerConfig instance.
           host_config: HostConfig instance.
         """
 
@@ -400,11 +400,8 @@ class DockerClient(object):
             )
         json_update(query_params, locals(), arg_fields, self.api_version)
 
-        # TODO: implementing handling of 'mounts' argument...
-
-        # and figure out how to handle verification of fx. image, user and
-        # container name arguments.  Maybe subclass str for the various string
-        # type arguments.
+        # TODO: implementing handling of 'mounts' argument, whatever it might
+        # mean.  It is not properly documented...
 
         headers = {'content-type': 'application/json'}
         json_params = {}
