@@ -5,11 +5,11 @@ shift
 case "$suite" in
 
     unit)
-	`dirname $0`/unit-test.sh --cov-report=xml
+	`dirname $0`/unit-test.sh
 	;;
 
     integration)
-	`dirname $0`/integration-test.sh --cov-report=xml
+	`dirname $0`/integration-test.sh
 	;;
 
     style)

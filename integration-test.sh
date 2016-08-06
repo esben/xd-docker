@@ -5,9 +5,8 @@ daemon_version=${DOCKER_VERSION-1.10}
 client_version=${DOCKER_CLIENT_VERSION-${daemon_version}}
 
 # Setup py.test runner command, using dind and client docker cointainers
-PYTEST="docker run --rm --link xd-docker-dind:docker \
-    -v $PWD:/xd-docker -w /xd-docker \
-    -e PYTHONPATH=/xd-docker \
+PYTEST="docker run --link xd-docker-dind:docker \
+    -v $PWD:/src -w /src -e PYTHONPATH=/src \
     -e DOCKER_HOST=tcp://docker:2375 \
     xd-docker-integration-test \
     py.test"
@@ -35,4 +34,4 @@ cat tests/integration/Dockerfile | \
 	> tests/integration/Dockerfile.tmp
 docker build -t xd-docker-integration-test -f tests/integration/Dockerfile.tmp .
 rm tests/integration/Dockerfile.tmp
-$PYTEST --cov=xd.docker
+$PYTEST --cov=xd.docker --cov-report=term-missing --cov-report=xml

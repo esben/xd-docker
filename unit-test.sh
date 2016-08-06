@@ -27,4 +27,4 @@ fi
 
 set -ex
 
-$PYTEST --cov=xd.docker
+$PYTEST --cov=xd.docker --cov-report=term-missing --cov-report=xml
