@@ -281,23 +281,23 @@ class DockerClient(object):
         if force_rm:
             rm = None
         arg_fields = (
-            ('dockerfile', (1, 17), 'dockerfile'),
-            ('t', (1, 14), 'tag'),
-            ('nocache', (1, 14), 'no_cache'),
-            ('pull', (1, 16), 'pull'),
-            ('rm', (1, 16), 'rm'),
-            ('forcerm', (1, 16), 'force_rm'),
-            ('buildargs', (1, 21), 'buildargs'),
+            ('dockerfile', 'dockerfile', ((1, 17), None)),
+            ('t', 'tag', None),
+            ('nocache', 'no_cache', None),
+            ('pull', 'pull', ((1, 16), None)),
+            ('rm', 'rm', ((1, 16), None)),
+            ('forcerm', 'force_rm', ((1, 16), None)),
+            ('buildargs', 'buildargs', ((1, 21), None)),
             )
         json_update(query_params, locals(), arg_fields, self.api_version)
         host_config_fields = (
-            ('memory', (1, 18), 'memory'),
-            ('memswap', (1, 18), 'memory_swap'),
-            ('cpushares', (1, 18), 'cpu_shares'),
-            ('cpusetcpus', (1, 18), 'cpuset_cpus'),
-            ('cpuperiod', (1, 19), 'cpu_period'),
-            ('cpuquota', (1, 19), 'cpu_quota'),
-            ('shmsize', (1, 22), 'shm_size'),
+            ('memory', 'memory', ((1, 18), None)),
+            ('memswap', 'memory_swap', ((1, 18), None)),
+            ('cpushares', 'cpu_shares', ((1, 18), None)),
+            ('cpusetcpus', 'cpuset_cpus', ((1, 18), None)),
+            ('cpuperiod', 'cpu_period', ((1, 19), None)),
+            ('cpuquota', 'cpu_quota', ((1, 19), None)),
+            ('shmsize', 'shm_size', ((1, 22), None)),
             )
         if host_config:
             json_update(query_params, host_config, host_config_fields,
@@ -347,21 +347,30 @@ class DockerClient(object):
         r = self._delete('/images/{}'.format(name))
         return json.loads(r.text)
 
-    def image_tag(self, image, tag, force=False):
+    def image_tag(self, image,
+                  tag: Optional[Union[Repository, str]]=None,
+                  force: Optional[bool]=None):
         """Tag an image.
 
         Add tag to an existing image.
 
         Arguments:
           image: image to add tag to.
-          tag: name of tag (REPOSITORY or REPOSITORY:TAG).
+          tag: repository name and optionally tag.
+          force: force creation of tag.
         """
+        # Handle convenience argument types
+        if isinstance(tag, str):
+            tag = Repository(tag)
+
         params = {}
-        if ':' in tag:
-            params['repo'], params['tag'] = tag.split(':', 1)
-        else:
-            params['repo'] = tag
-        params['force'] = 1 if force else 0
+        params['repo'] = tag.name
+        if tag.tag is not None:
+            params['tag'] = tag.tag
+        if isinstance(force, bool):
+            json_update(params, {'force': force},
+                        (('force', 'force', (None, (1, 23))),),
+                        self.api_version)
         self._post('/images/{}/tag'.format(image), params=params)
 
     def container_create(
@@ -387,7 +396,7 @@ class DockerClient(object):
 
         query_params = {}
         arg_fields = (
-            ('name', (1, 14), 'name'),
+            ('name', 'name', None),
             )
         json_update(query_params, locals(), arg_fields, self.api_version)
 
