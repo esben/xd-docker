@@ -203,6 +203,13 @@ class Env(Parameter):
             return ['%s=%s' % (k, v) for k, v in self.env.items()]
 
 
+def validate_network_port(port: int, protocol: str):
+    if port <= 0 or port > 65535:
+        raise ValueError('port must be > 0 and <= 65535')
+    if protocol not in ('tcp', 'udp'):
+        raise ValueError("protocol must be either 'tcp' or 'udp'")
+
+
 class Port(Parameter):
     """Network port.
 
@@ -218,11 +225,8 @@ class Port(Parameter):
     """
 
     def __init__(self, port: int, protocol: str='tcp'):
-        if port <= 0 or port > 65535:
-            raise ValueError('port must be > 0 and <= 65535')
+        validate_network_port(port, protocol)
         self.port = port
-        if protocol not in ('tcp', 'udp'):
-            raise ValueError("protocol must be either 'tcp' or 'udp'")
         self.protocol = protocol
 
     def json(self, api_version: Optional[ApiVersion]=None):
@@ -251,11 +255,8 @@ class PortBinding(Parameter):
     def __init__(self, port: int, protocol: str='tcp',
                  host_ip: Optional[IPAddress]=None,
                  host_port: Optional[int]=None):
-        if port <= 0 or port > 65535:
-            raise ValueError('port must be > 0 and <= 65535')
+        validate_network_port(port, protocol)
         self.port = port
-        if protocol not in ('tcp', 'udp'):
-            raise ValueError("protocol must be either 'tcp' or 'udp'")
         self.protocol = protocol
         self.host_ip = host_ip
         if host_port is None:
