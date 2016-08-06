@@ -34,4 +34,4 @@ cat tests/integration/Dockerfile | \
 	> tests/integration/Dockerfile.tmp
 docker build -t xd-docker-integration-test -f tests/integration/Dockerfile.tmp .
 rm tests/integration/Dockerfile.tmp
-$PYTEST --cov=xd.docker
+$PYTEST --cov=xd.docker --cov-report=term-missing --cov-report=xml
