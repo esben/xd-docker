@@ -1046,3 +1046,57 @@ class container_create_tests(ContextClientTestCase):
         exposed_ports_arg = data_arg['ExposedPorts']
         print(exposed_ports_arg)
         self.assertEqual(exposed_ports_arg, {'22/tcp': {}, '80/tcp': {}})
+
+    @mock.patch('requests.get')
+    @mock.patch('requests.post')
+    def test_container_create_pull_needed(self, post_mock, get_mock):
+        post_mock.return_value = self.simple_success_response
+        get_mock.side_effect = [
+            requests_mock.version_response("1.22", "1.10.3"),
+            requests_mock.Response('404 no such image\n', 404)]
+        self.client.container_create(
+            ContainerConfig('busybox:latest'), pull=True)
+        assert post_mock.call_count == 2
+        name, args, kwargs = post_mock.mock_calls[1]
+        assert args[0].endswith('/containers/create')
+
+    @mock.patch('requests.get')
+    @mock.patch('requests.post')
+    def test_container_create_pull_not_needed(self, post_mock, get_mock):
+        post_mock.return_value = self.simple_success_response
+        get_mock.side_effect = [
+            requests_mock.version_response("1.22", "1.10.3"),
+            requests_mock.Response(json.dumps(
+                image_inspect_tests.response), 200)]
+        self.client.container_create(
+            ContainerConfig('busybox:latest'), pull=True)
+        assert post_mock.call_count == 1
+        name, args, kwargs = post_mock.mock_calls[0]
+        assert args[0].endswith('/containers/create')
+
+    @mock.patch('requests.get')
+    @mock.patch('requests.post')
+    def test_container_create_nopull_needed(self, post_mock, get_mock):
+        post_mock.return_value = self.simple_success_response
+        get_mock.side_effect = [
+            requests_mock.version_response("1.22", "1.10.3"),
+            requests_mock.Response('404 no such image\n', 404)]
+        self.client.container_create(
+            ContainerConfig('busybox:latest'), pull=False)
+        assert post_mock.call_count == 1
+        name, args, kwargs = post_mock.mock_calls[0]
+        assert args[0].endswith('/containers/create')
+
+    @mock.patch('requests.get')
+    @mock.patch('requests.post')
+    def test_container_create_nopull_not_needed(self, post_mock, get_mock):
+        post_mock.return_value = self.simple_success_response
+        get_mock.side_effect = [
+            requests_mock.version_response("1.22", "1.10.3"),
+            requests_mock.Response(json.dumps(
+                image_inspect_tests.response), 200)]
+        self.client.container_create(
+            ContainerConfig('busybox:latest'), pull=False)
+        assert post_mock.call_count == 1
+        name, args, kwargs = post_mock.mock_calls[0]
+        assert args[0].endswith('/containers/create')
