@@ -10,8 +10,9 @@ the Docker Remote API in Python.
 Developer resources
 -------------------
 
-- Source code, issue tracking, website and wiki is hosted on [GitHub](https://github.com)
+- [![PyPI](https://img.shields.io/pypi/v/xd-docker.svg?maxAge=2592000)](https://pypi.python.org/pypi/XD-Docker) - Package repository hosted by [PyPI](https://pypi.python.org)
 - [![Documentation Status](https://readthedocs.org/projects/xd-docker/badge/?version=latest)](http://xd-docker.readthedocs.org/en/latest/?badge=latest) - Documentation hosted by [Read the Docs](https://readthedocs.org/)
+- [![](https://img.shields.io/github/issues-pr-closed-raw/XD-embedded/xd-docker.svg)](https://github.com/XD-embedded/xd-docker) - Source code, issue tracking, website and wiki is hosted on [GitHub](https://github.com)
 - [![Stories in Ready](https://img.shields.io/waffle/label/XD-embedded/xd-docker/ready.svg) ![Stories in Progress](https://img.shields.io/waffle/label/XD-embedded/xd-docker/in%20progress.svg)](https://waffle.io/XD-embedded/xd-docker) - Kanban board provided by [waffle.io](https://waffle.io/)
 - [![Travis CI Status](https://travis-ci.org/XD-embedded/xd-docker.svg?branch=master)](https://travis-ci.org/XD-embedded/xd-docker) - Continous Integration is provided by [Travis CI](https://travis-ci.org)
 - [![Coverage Status](https://coveralls.io/repos/XD-embedded/xd-docker/badge.svg?branch=master)](https://coveralls.io/r/XD-embedded/xd-docker?branch=master) - Code coverage analysis is provided by [Coveralls](https://coveralls.io)
