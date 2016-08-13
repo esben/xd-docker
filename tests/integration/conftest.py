@@ -11,8 +11,10 @@ from xd.docker.client import *
 DOCKER_HOST = os.environ.get('DOCKER_HOST', None)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def docker(request):
+    os.system("for c in `docker ps -a -q`;do docker rm $c;done")
+    os.system("for i in `docker images -q`;do docker rmi $i;done")
     return DockerClient(host=DOCKER_HOST)
 
 
