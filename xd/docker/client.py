@@ -378,7 +378,8 @@ class DockerClient(object):
             config: ContainerConfig,
             name: Optional[Union[ContainerName, str]]=None,
             mounts: Optional[Sequence[VolumeMount]]=None,
-            host_config: Optional[HostConfig]=None):
+            host_config: Optional[HostConfig]=None,
+            pull: bool=True):
         """Create a new container.
 
         Create a new container based on existing image.
@@ -388,6 +389,7 @@ class DockerClient(object):
           name: name to assign to container.
           mounts: mount points in the container (list of strings).
           host_config: HostConfig instance.
+          pull: Pull image if needed.
         """
 
         # Handle convenience argument types
@@ -414,6 +416,13 @@ class DockerClient(object):
         if 'ExposedPorts' in json_params:
             json_params['ExposedPorts'] = {
                 port: {} for port in json_params['ExposedPorts']}
+
+        # Pull image if necessary
+        if pull:
+            try:
+                self.image_inspect_raw(config.image)
+            except ClientError:
+                self.image_pull(config.image, output=())
 
         response = self._post('/containers/create', params=query_params,
                               headers=headers, data=json.dumps(json_params))
