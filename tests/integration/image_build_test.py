@@ -88,7 +88,7 @@ def test_image_build_9_error(docker, busybox_error, stdout):
         image = docker.image_build('.', cache=False)
     assert image is None
     assert re.search(
-        '^The command ./bin/sh -c false. returned a non-zero code: 1$',
+        'The command ./bin/sh -c false. returned a non-zero code: 1$',
         stdout.get(), re.M)
 
 
@@ -97,6 +97,5 @@ def test_image_build_10_error_quiet(docker, busybox_error, stdout):
         image = docker.image_build('.', cache=False, output=('error'))
     assert image is None
     assert re.search(
-        '^The command ./bin/sh -c false. returned a non-zero code: 1$',
+        'The command ./bin/sh -c false. returned a non-zero code: 1$',
         stdout.get(), re.M)
-    assert len(stdout.getlines()) == 1
