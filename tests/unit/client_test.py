@@ -1,5 +1,6 @@
 import unittest
 import mock
+import pytest
 import io
 import contextlib
 import tempfile
@@ -292,7 +293,7 @@ class containers_tests(SimpleClientTestCase):
         },
         "Mounts": []
     }]
-    
+
     @mock.patch('requests.get')
     def test_containers_1(self, get_mock):
         get_mock.return_value = requests_mock.Response(json.dumps(
@@ -1100,3 +1101,76 @@ class container_create_tests(ContextClientTestCase):
         assert post_mock.call_count == 1
         name, args, kwargs = post_mock.mock_calls[0]
         assert args[0].endswith('/containers/create')
+
+
+class container_remove_tests(ContextClientTestCase):
+
+    @mock.patch('requests.delete')
+    def test_ok(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove('foobar')
+        params = delete_mock.call_args[1]['params']
+        assert 'force' not in params
+        assert 'v' not in params
+        assert delete_mock.call_args[0][0].endswith('/containers/foobar')
+
+    @mock.patch('requests.delete')
+    def test_no_such_container(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response(
+            "No such container", 404)
+        with pytest.raises(ClientError) as clienterror:
+            self.client.container_remove('foobar')
+        assert clienterror.value.code == 404
+
+    @mock.patch('requests.delete')
+    def test_containername(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove(ContainerName('foobar'))
+        assert delete_mock.call_args[0][0].endswith('/containers/foobar')
+
+    @mock.patch('requests.delete')
+    def test_container_with_name(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove(Container(self.client, name='foobar'))
+        assert delete_mock.call_args[0][0].endswith('/containers/foobar')
+
+    @mock.patch('requests.delete')
+    def test_container_with_id(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove(Container(self.client, id='dfeb03b02b41'))
+        assert delete_mock.call_args[0][0].endswith('/containers/dfeb03b02b41')
+
+    @mock.patch('requests.delete')
+    def test_container_with_id_and_name(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove(Container(self.client,
+                                               id='dfeb03b02b41', name='foo'))
+        assert delete_mock.call_args[0][0].endswith('/containers/dfeb03b02b41')
+
+    @mock.patch('requests.delete')
+    def test_force_true(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove('foobar', force=True)
+        params = delete_mock.call_args[1]['params']
+        assert 'force' in params and params['force']
+
+    @mock.patch('requests.delete')
+    def test_force_false(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove('foobar', force=False)
+        params = delete_mock.call_args[1]['params']
+        assert 'force' in params and not params['force']
+
+    @mock.patch('requests.delete')
+    def test_volumes_true(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove('foobar', volumes=True)
+        params = delete_mock.call_args[1]['params']
+        assert 'v' in params and params['v']
+
+    @mock.patch('requests.delete')
+    def test_volumes_false(self, delete_mock):
+        delete_mock.return_value = requests_mock.Response("OK", 200)
+        self.client.container_remove('foobar', volumes=False)
+        params = delete_mock.call_args[1]['params']
+        assert 'v' in params and not params['v']

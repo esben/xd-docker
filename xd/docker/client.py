@@ -428,3 +428,33 @@ class DockerClient(object):
                               headers=headers, data=json.dumps(json_params))
         response_json = response.json()
         return Container(self, id=response_json['Id'])
+
+    def container_remove(self, container: Union[Container, ContainerName, str],
+                         force: Optional[bool]=None,
+                         volumes: Optional[bool]=None):
+        """Remove a container.
+
+        Remove a container and (optionally) the associated volumes.
+
+        Arguments:
+          container: The container to remove (id or name).
+          force: Kill then remove the container.
+          volumes: Remove the volumes associated to the container.
+        """
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+
+        query_params = {}
+        if force is not None:
+            query_params['force'] = force
+        if volumes is not None:
+            query_params['v'] = volumes
+
+        self._delete('/containers/' + id_or_name, params=query_params)
+        return
