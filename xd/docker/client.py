@@ -458,3 +458,30 @@ class DockerClient(object):
 
         self._delete('/containers/' + id_or_name, params=query_params)
         return
+
+    def container_start(self, container: Union[Container, ContainerName, str]):
+        """Start a container.
+
+        Arguments:
+          container: The container to start (id or name).
+
+        Returns:
+          True if container was started.
+          False if container was already started.
+        """
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+
+        try:
+            self._post('/containers/{}/start'.format(id_or_name))
+        except HTTPError as e:
+            if e.code == 304:
+                return False
+            raise e
+        return True
