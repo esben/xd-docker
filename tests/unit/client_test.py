@@ -1174,3 +1174,57 @@ class container_remove_tests(ContextClientTestCase):
         self.client.container_remove('foobar', volumes=False)
         params = delete_mock.call_args[1]['params']
         assert 'v' in params and not params['v']
+
+
+class container_start_tests(ContextClientTestCase):
+
+    @mock.patch('requests.post')
+    def test_str(self, post_mock):
+        post_mock.return_value = requests_mock.Response("OK", 204)
+        assert self.client.container_start('foobar')
+        assert not post_mock.call_args[1]['params']
+        assert post_mock.call_args[0][0].endswith('/containers/foobar/start')
+
+    @mock.patch('requests.post')
+    def test_containername(self, post_mock):
+        post_mock.return_value = requests_mock.Response("OK", 204)
+        assert self.client.container_start(ContainerName('foobar'))
+        assert not post_mock.call_args[1]['params']
+        assert post_mock.call_args[0][0].endswith('/containers/foobar/start')
+
+    @mock.patch('requests.post')
+    def test_container_with_name(self, post_mock):
+        post_mock.return_value = requests_mock.Response("OK", 204)
+        assert self.client.container_start(
+            Container(self.client, name='foobar'))
+        assert post_mock.call_args[0][0].endswith('/containers/foobar/start')
+
+    @mock.patch('requests.post')
+    def test_container_with_id(self, post_mock):
+        post_mock.return_value = requests_mock.Response("OK", 204)
+        assert self.client.container_start(
+            Container(self.client, id='dfeb03b02b41'))
+        assert post_mock.call_args[0][0].endswith(
+            '/containers/dfeb03b02b41/start')
+
+    @mock.patch('requests.post')
+    def test_container_with_id_and_name(self, post_mock):
+        post_mock.return_value = requests_mock.Response("OK", 204)
+        assert self.client.container_start(
+            Container(self.client, id='dfeb03b02b41', name='foobar'))
+        assert post_mock.call_args[0][0].endswith(
+            '/containers/dfeb03b02b41/start')
+
+    @mock.patch('requests.post')
+    def test_already_running(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            "Container already started", 304)
+        assert not self.client.container_start('foobar')
+
+    @mock.patch('requests.post')
+    def test_no_such_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            "No such container", 404)
+        with pytest.raises(ClientError) as clienterror:
+            self.client.container_start('foobar')
+        assert clienterror.value.code == 404
