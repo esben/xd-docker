@@ -259,7 +259,7 @@ class containers_tests(SimpleClientTestCase):
         "Mounts": []
     }, {
         "Id": "4cb07b47f9fb",
-        "Names":["/running_cat"],
+        "Names":["/running_cat", "/sleepy_dog/cat"],
         "Image": "ubuntu:latest",
         "ImageID": "d74508fb6632491cea586a1fd7d748dfc5274cd6fdfedee309ecdcbc2bf5cb82",
         "Command": "echo 444444444444444444444444444444444",
@@ -307,6 +307,20 @@ class containers_tests(SimpleClientTestCase):
         assert isinstance(c.image, Image)
 
     @mock.patch('requests.get')
+    def test_containers_3(self, get_mock):
+        get_mock.return_value = requests_mock.Response(json.dumps(
+            self.response[:3]), 200)
+        containers = self.client.containers()
+        assert get_mock.called
+        assert len(containers) == 3
+        expected = ['8dfafdbc3a40', '9cd87474be90', '3176a2479c92']
+        for c in containers:
+            assert isinstance(c, Container)
+            assert c.id in expected
+            expected.remove(c.id)
+        assert expected == []
+
+    @mock.patch('requests.get')
     def test_containers_4(self, get_mock):
         get_mock.return_value = requests_mock.Response(json.dumps(
             self.response), 200)
@@ -319,6 +333,9 @@ class containers_tests(SimpleClientTestCase):
             assert isinstance(c, Container)
             assert c.id in expected
             expected.remove(c.id)
+            if c.id == '4cb07b47f9fb':
+                assert c.name == '/running_cat'
+                assert c.names == [('/sleepy_dog', 'cat')]
         assert expected == []
 
     @mock.patch('requests.get')

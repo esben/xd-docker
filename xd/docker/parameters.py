@@ -238,7 +238,8 @@ class RepoTags(Parameter):
     """
 
     def __init__(self, repos: List[str]):
-        self.repos = [Repository(repo) for repo in repos]
+        self.repos = [Repository(repo) for repo in repos
+                      if repo != '<none>:<none>']
 
     def json(self, api_version: Optional[ApiVersion]=None):
         return [str(repo) for repo in self.repos]
