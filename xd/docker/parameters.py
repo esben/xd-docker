@@ -104,7 +104,7 @@ class Hostname(Parameter):
       hostname (str): Hostname.
     """
 
-    HOSTNAME_RE = re.compile(r'[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+    HOSTNAME_RE = re.compile(r'[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$')
 
     def __init__(self, hostname: str):
         if not self.HOSTNAME_RE.match(hostname):
@@ -127,7 +127,7 @@ class Domainname(Hostname):
       domainname (str): Domain name.
     """
 
-    DOMAINNAME_RE = re.compile(r'%s(\.%s)*$' % (
+    DOMAINNAME_RE = re.compile(r'%s(?:\.%s)*$' % (
         Hostname.HOSTNAME_RE.pattern[:-1], Hostname.HOSTNAME_RE.pattern[:-1]))
 
     def __init__(self, domainname: str):
@@ -198,7 +198,9 @@ class Repository(Parameter):
       name (str): Repository name.
       tag (Optional[str]): Repository tag.
     """
-    NAME_RE = re.compile(r'[a-z0-9-_.]+$')
+    NAME_RE = re.compile(
+        r'(?:(?:%s:\d+/)?|/)?' % (Domainname.DOMAINNAME_RE.pattern[:-1]) +
+        r'[a-z0-9-_\.]+(?:(?:/[a-z0-9-_\.]+)+)?$')
     TAG_RE = re.compile(r'[a-zA-Z0-9-_.]+$')
     NAME_AND_TAG_RE = re.compile(r'(%s):(%s)?$' % (
         NAME_RE.pattern[:-1], TAG_RE.pattern[:-1]))
