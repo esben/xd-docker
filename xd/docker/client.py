@@ -140,8 +140,7 @@ class DockerClient(object):
           Major/minor version number of Docker daemon (Docker Remote API).
         """
         r = self._get('/version')
-        version = json.loads(r.text)
-        return version
+        return r.json()
 
     @property
     @functools.lru_cache(maxsize=1)
@@ -176,8 +175,7 @@ class DockerClient(object):
         params = {}
         params['all'] = not only_running
         r = self._get('/containers/json', params=params)
-        containers = json.loads(r.text)
-        return [Container(self, list_response=c) for c in containers]
+        return [Container(self, list_response=c) for c in r.json()]
 
     def images(self) -> List[Image]:
         """Get list of images.
@@ -192,13 +190,12 @@ class DockerClient(object):
         Returns:
           List of images.
         """
-        response = self._get('/images/json')
-        images = json.loads(response.text)
-        return [Image(self, list_response=image) for image in images]
+        r = self._get('/images/json')
+        return [Image(self, list_response=image) for image in r.json()]
 
     def image_inspect_raw(self, name: str) -> Dict:
         r = self._get('/images/{}/json'.format(name))
-        return json.loads(r.text)
+        return r.json()
 
     def image_inspect(self, name: str) -> Image:
         """Get image with low-level information.
@@ -345,7 +342,7 @@ class DockerClient(object):
           name: name of the image to remove.
         """
         r = self._delete('/images/{}'.format(name))
-        return json.loads(r.text)
+        return r.json()
 
     def image_tag(self, image,
                   tag: Optional[Union[Repository, str]]=None,
