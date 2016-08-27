@@ -484,3 +484,27 @@ class DockerClient(object):
                 return False
             raise e
         return True
+
+    def container_wait(self,
+                       container: Union[Container, ContainerName, str]) -> int:
+        """Block until container stops.
+
+        Block until container stops, then returns the exit code.
+
+        Arguments:
+          container: The container to remove (id or name).
+
+        Returns:
+          Container exit code.
+        """
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+
+        r = self._post('/containers/{}/wait'.format(id_or_name))
+        return r.json()['StatusCode']
