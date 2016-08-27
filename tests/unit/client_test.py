@@ -1263,10 +1263,7 @@ class container_wait_tests(ContextClientTestCase):
 
     @mock.patch('requests.post')
     def test_no_such_container(self, post_mock):
-        post_mock.return_value = requests_mock.Response(json.dumps(
-            {'StatusCode': 42}), 200)
-        post_mock.return_value = requests_mock.Response(
-            "No such container", 404)
+        post_mock.return_value = requests_mock.Response(None, 404)
         with pytest.raises(ClientError) as clienterror:
             self.client.container_wait('foobar')
         assert clienterror.value.code == 404
@@ -1283,3 +1280,43 @@ class container_wait_tests(ContextClientTestCase):
             {'StatusCode': 0}), 200)
         assert self.client.container_wait(Container(
             self.client,name="foobar")) == 0
+
+
+class container_stop_tests(ContextClientTestCase):
+
+    @mock.patch('requests.post')
+    def test_normal(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        assert self.client.container_stop("foobar") == True
+
+    @mock.patch('requests.post')
+    def test_already_stopped(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 304)
+        assert self.client.container_stop("foobar") == False
+
+    @mock.patch('requests.post')
+    def test_no_such_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 404)
+        with pytest.raises(ClientError) as clienterror:
+            self.client.container_stop('foobar')
+        assert clienterror.value.code == 404
+
+    @mock.patch('requests.post')
+    def test_containername(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        assert self.client.container_stop(ContainerName("foobar")) == True
+
+    @mock.patch('requests.post')
+    def test_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        assert self.client.container_stop(Container(
+            self.client,name="foobar")) == True
+
+    @mock.patch('requests.post')
+    def test_timeout(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        assert self.client.container_stop("foobar", timeout=42) == True
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 't' in params
+        assert params['t'] == 42

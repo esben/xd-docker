@@ -508,3 +508,35 @@ class DockerClient(object):
 
         r = self._post('/containers/{}/wait'.format(id_or_name))
         return r.json()['StatusCode']
+
+    def container_stop(self, container: Union[Container, ContainerName, str],
+                       timeout: Optional[int]=None):
+        """Stop container.
+
+        Stop the container, and optionally killing the container after a
+        timeout.
+
+        Arguments:
+          container: The container to remove (id or name).
+          timeout: Number of seconds to wait before killing the container.
+        """
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+
+        params = {}
+        if timeout is not None:
+            params['t'] = timeout
+
+        try:
+            self._post('/containers/{}/stop'.format(id_or_name), params=params)
+        except HTTPError as e:
+            if e.code == 304:
+                return False
+            raise e
+        return True
