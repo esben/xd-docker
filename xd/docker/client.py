@@ -540,3 +540,31 @@ class DockerClient(object):
                 return False
             raise e
         return True
+
+    def container_restart(self,
+                          container: Union[Container, ContainerName, str],
+                          timeout: Optional[int]=None):
+        """Restart container.
+
+        Restart the container, and optionally killing the container after a
+        timeout waiting for the container to stop.
+
+        Arguments:
+          container: The container to remove (id or name).
+          timeout: Number of seconds to wait before killing the container.
+        """
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+
+        params = {}
+        if timeout is not None:
+            params['t'] = timeout
+
+        self._post('/containers/{}/restart'.format(id_or_name),
+                   params=params)

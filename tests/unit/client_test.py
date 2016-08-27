@@ -1320,3 +1320,37 @@ class container_stop_tests(ContextClientTestCase):
         params = post_mock.call_args[1]['params']
         assert 't' in params
         assert params['t'] == 42
+
+
+class container_restart_tests(ContextClientTestCase):
+
+    @mock.patch('requests.post')
+    def test_normal(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_restart("foobar")
+
+    @mock.patch('requests.post')
+    def test_no_such_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 404)
+        with pytest.raises(ClientError) as clienterror:
+            self.client.container_restart('foobar')
+        assert clienterror.value.code == 404
+
+    @mock.patch('requests.post')
+    def test_containername(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_restart(ContainerName("foobar"))
+
+    @mock.patch('requests.post')
+    def test_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_restart(Container(self.client,name="foobar"))
+
+    @mock.patch('requests.post')
+    def test_timeout(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_restart("foobar", timeout=42)
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 't' in params
+        assert params['t'] == 42
