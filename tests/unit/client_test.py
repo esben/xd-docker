@@ -1245,3 +1245,41 @@ class container_start_tests(ContextClientTestCase):
         with pytest.raises(ClientError) as clienterror:
             self.client.container_start('foobar')
         assert clienterror.value.code == 404
+
+
+class container_wait_tests(ContextClientTestCase):
+
+    @mock.patch('requests.post')
+    def test_0(self, post_mock):
+        post_mock.return_value = requests_mock.Response(json.dumps(
+            {'StatusCode': 0}), 200)
+        assert self.client.container_wait("foobar") == 0
+
+    @mock.patch('requests.post')
+    def test_42(self, post_mock):
+        post_mock.return_value = requests_mock.Response(json.dumps(
+            {'StatusCode': 42}), 200)
+        assert self.client.container_wait("foobar") == 42
+
+    @mock.patch('requests.post')
+    def test_no_such_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(json.dumps(
+            {'StatusCode': 42}), 200)
+        post_mock.return_value = requests_mock.Response(
+            "No such container", 404)
+        with pytest.raises(ClientError) as clienterror:
+            self.client.container_wait('foobar')
+        assert clienterror.value.code == 404
+
+    @mock.patch('requests.post')
+    def test_containername(self, post_mock):
+        post_mock.return_value = requests_mock.Response(json.dumps(
+            {'StatusCode': 0}), 200)
+        assert self.client.container_wait(ContainerName("foobar")) == 0
+
+    @mock.patch('requests.post')
+    def test_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(json.dumps(
+            {'StatusCode': 0}), 200)
+        assert self.client.container_wait(Container(
+            self.client,name="foobar")) == 0
