@@ -65,7 +65,9 @@ class DockerClient(object):
     >>> docker = DockerClient('unix:///var/run/docker.sock')
     """
 
-    def __init__(self, host: str = 'unix:///var/run/docker.sock'):
+    def __init__(self, host: Optional[str]=None):
+        if host is None:
+            host = os.environ.get('DOCKER_HOST', 'unix:///var/run/docker.sock')
         if host.startswith('unix://'):
             host = 'http+unix://' + urllib.parse.quote_plus(host[7:])
         elif host.startswith('tcp://'):
