@@ -1263,10 +1263,7 @@ class container_wait_tests(ContextClientTestCase):
 
     @mock.patch('requests.post')
     def test_no_such_container(self, post_mock):
-        post_mock.return_value = requests_mock.Response(json.dumps(
-            {'StatusCode': 42}), 200)
-        post_mock.return_value = requests_mock.Response(
-            "No such container", 404)
+        post_mock.return_value = requests_mock.Response(None, 404)
         with pytest.raises(ClientError) as clienterror:
             self.client.container_wait('foobar')
         assert clienterror.value.code == 404
