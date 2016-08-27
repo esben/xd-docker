@@ -56,8 +56,15 @@ class Container(object):
                 continue
             if name == 'Names':
                 assert isinstance(value, list)
-                assert len(value) == 1
-                (value,) = value
+                # The Names value is a list of container names, with first
+                # entry being the containers real name, and the other being
+                # linked names.
+                assert len(value) > 0
+                setattr(self, 'name', value.pop(0))
+                names = []
+                for link in value:
+                    names.append(tuple(link.rsplit('/', 1)))
+                value = names
             setattr(self, name.lower(), value)
 
     INSPECT_RESPONSE_ATTRS = (

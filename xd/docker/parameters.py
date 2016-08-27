@@ -20,10 +20,10 @@ ApiVersion = Tuple[int, int]
 __all__ = ['IPAddress', 'Command', 'Signal', 'ApiVersion',
            'json_update',
            'Parameter',
+           'Hostname', 'Domainname', 'MacAddress', 'Username',
            'Repository', 'RepoTags', 'ContainerName',
            'Env', 'Port', 'PortBinding', 'VolumeMount', 'VolumeBinding',
            'ContainerLink', 'Cpuset',
-           'Hostname', 'Domainname', 'MacAddress', 'Username',
            'HostnameIPMapping', 'VolumesFrom', 'RestartPolicy',
            'DeviceToAdd', 'Ulimit', 'LogConfiguration',
            'AuthConfig', 'CredentialAuthConfig', 'TokenAuthConfig',
@@ -90,6 +90,101 @@ class Parameter(object):
         raise NotImplementedError
 
 
+class Hostname(Parameter):
+    """Hostname.
+
+    A Hostname instance represents a network hostname.  A hostname must not
+    contain dots ('.').  To specify a fully qualified domain name, use
+    :class:`.Domainname`.
+
+    Arguments:
+      hostname: Hostname.
+
+    Attributes:
+      hostname (str): Hostname.
+    """
+
+    HOSTNAME_RE = re.compile(r'[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$')
+
+    def __init__(self, hostname: str):
+        if not self.HOSTNAME_RE.match(hostname):
+            raise ValueError('invalid hostname: %s' % hostname)
+        self.hostname = hostname
+
+    def json(self, api_version: Optional[ApiVersion]=None):
+        return self.hostname
+
+
+class Domainname(Hostname):
+    """Domain name.
+
+    A Domainname instance represents a network domain name.
+
+    Arguments:
+      domainname: Domain name.
+
+    Attributes:
+      domainname (str): Domain name.
+    """
+
+    DOMAINNAME_RE = re.compile(r'%s(?:\.%s)*$' % (
+        Hostname.HOSTNAME_RE.pattern[:-1], Hostname.HOSTNAME_RE.pattern[:-1]))
+
+    def __init__(self, domainname: str):
+        if not self.DOMAINNAME_RE.match(domainname):
+            raise ValueError('invalid domainname: %s' % domainname)
+        self.domainname = domainname
+
+    def json(self, api_version: Optional[ApiVersion]=None):
+        return self.domainname
+
+
+class MacAddress(Parameter):
+    """Ethernet MAC address.
+
+    A MacAddress instance represents an Ethernet MAC address.
+
+    Arguments:
+      addr: MAC address (fx. '01:02:03:04:05:06').
+
+    Attributes:
+      addr (str): MAC address (fx. '01:02:03:04:05:06').
+    """
+
+    MACADDRESS_RE = re.compile('[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$')
+
+    def __init__(self, addr: str):
+        if not self.MACADDRESS_RE.match(addr):
+            raise ValueError('invalid MAC address: %s' % addr)
+        self.addr = addr
+
+    def json(self, api_version: Optional[ApiVersion]=None):
+        return self.addr
+
+
+class Username(Parameter):
+    """User name.
+
+    A Username instance represents a UNIX user name.
+
+    Arguments:
+      username: User name.
+
+    Attributes:
+      username (str): User name.
+    """
+
+    USERNAME_RE = re.compile(r'[a-z0-9][a-z0-9_-]*$')
+
+    def __init__(self, username: str):
+        if not self.USERNAME_RE.match(username):
+            raise ValueError('invalid username: %s' % username)
+        self.username = username
+
+    def json(self, api_version: Optional[ApiVersion]=None):
+        return self.username
+
+
 class Repository(Parameter):
     """Repository name (and optionally tag) parameter.
 
@@ -103,7 +198,9 @@ class Repository(Parameter):
       name (str): Repository name.
       tag (Optional[str]): Repository tag.
     """
-    NAME_RE = re.compile(r'[a-z0-9-_.]+$')
+    NAME_RE = re.compile(
+        r'(?:(?:%s:\d+/)?|/)?' % (Domainname.DOMAINNAME_RE.pattern[:-1]) +
+        r'[a-z0-9-_\.]+(?:(?:/[a-z0-9-_\.]+)+)?$')
     TAG_RE = re.compile(r'[a-zA-Z0-9-_.]+$')
     NAME_AND_TAG_RE = re.compile(r'(%s):(%s)?$' % (
         NAME_RE.pattern[:-1], TAG_RE.pattern[:-1]))
@@ -141,7 +238,8 @@ class RepoTags(Parameter):
     """
 
     def __init__(self, repos: List[str]):
-        self.repos = [Repository(repo) for repo in repos]
+        self.repos = [Repository(repo) for repo in repos
+                      if repo != '<none>:<none>']
 
     def json(self, api_version: Optional[ApiVersion]=None):
         return [str(repo) for repo in self.repos]
@@ -398,101 +496,6 @@ class Cpuset(Parameter):
 
     def json(self, api_version: Optional[ApiVersion]=None):
         return self.cpuset
-
-
-class Hostname(Parameter):
-    """Hostname.
-
-    A Hostname instance represents a network hostname.  A hostname must not
-    contain dots ('.').  To specify a fully qualified domain name, use
-    :class:`.Domainname`.
-
-    Arguments:
-      hostname: Hostname.
-
-    Attributes:
-      hostname (str): Hostname.
-    """
-
-    HOSTNAME_RE = re.compile(r'[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
-
-    def __init__(self, hostname: str):
-        if not self.HOSTNAME_RE.match(hostname):
-            raise ValueError('invalid hostname: %s' % hostname)
-        self.hostname = hostname
-
-    def json(self, api_version: Optional[ApiVersion]=None):
-        return self.hostname
-
-
-class Domainname(Hostname):
-    """Domain name.
-
-    A Domainname instance represents a network domain name.
-
-    Arguments:
-      domainname: Domain name.
-
-    Attributes:
-      domainname (str): Domain name.
-    """
-
-    DOMAINNAME_RE = re.compile(r'%s(\.%s)*$' % (
-        Hostname.HOSTNAME_RE.pattern[:-1], Hostname.HOSTNAME_RE.pattern[:-1]))
-
-    def __init__(self, domainname: str):
-        if not self.DOMAINNAME_RE.match(domainname):
-            raise ValueError('invalid domainname: %s' % domainname)
-        self.domainname = domainname
-
-    def json(self, api_version: Optional[ApiVersion]=None):
-        return self.domainname
-
-
-class MacAddress(Parameter):
-    """Ethernet MAC address.
-
-    A MacAddress instance represents an Ethernet MAC address.
-
-    Arguments:
-      addr: MAC address (fx. '01:02:03:04:05:06').
-
-    Attributes:
-      addr (str): MAC address (fx. '01:02:03:04:05:06').
-    """
-
-    MACADDRESS_RE = re.compile('[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$')
-
-    def __init__(self, addr: str):
-        if not self.MACADDRESS_RE.match(addr):
-            raise ValueError('invalid MAC address: %s' % addr)
-        self.addr = addr
-
-    def json(self, api_version: Optional[ApiVersion]=None):
-        return self.addr
-
-
-class Username(Parameter):
-    """User name.
-
-    A Username instance represents a UNIX user name.
-
-    Arguments:
-      username: User name.
-
-    Attributes:
-      username (str): User name.
-    """
-
-    USERNAME_RE = re.compile(r'[a-z0-9][a-z0-9_-]*$')
-
-    def __init__(self, username: str):
-        if not self.USERNAME_RE.match(username):
-            raise ValueError('invalid username: %s' % username)
-        self.username = username
-
-    def json(self, api_version: Optional[ApiVersion]=None):
-        return self.username
 
 
 class HostnameIPMapping(Parameter):
