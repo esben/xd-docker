@@ -519,6 +519,10 @@ class DockerClient(object):
         Arguments:
           container: The container to remove (id or name).
           timeout: Number of seconds to wait before killing the container.
+
+        Returns:
+          True if container was stopped.
+          False if container was already stopped.
         """
 
         # Handle convenience argument types

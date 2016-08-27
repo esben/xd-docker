@@ -1,6 +1,5 @@
 import pytest
 import os
-import time
 
 from xd.docker.client import *
 
