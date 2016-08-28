@@ -1,7 +1,15 @@
-0.2.0 (in development)
+0.2.0 (2016-08-28)
 ----------------------
 * Add container_remove() method.
 * Add container_start() method.
+* Add container_wait() method.
+* Add container_stop() method.
+* Add container_restart() method.
+* Add container_kill() method.
+* Allow private registry image names.
+* Fixed handling of linked containers in containers().
+* Support DOCKER_HOST environment variable.
+* Add shell script to do manual testing.
 
 0.1.0 (2016-08-13)
 ------------------

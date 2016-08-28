@@ -18,5 +18,4 @@ unit and integration tests in place.
 Documentation
 -------------
 
-Documentation will be hosted on http://readthedocs.org when I have finished
-the setup for that.
+Documentation is build with Sphinx, and is hosted on http://readthedocs.org
