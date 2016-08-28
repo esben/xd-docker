@@ -126,6 +126,13 @@ class DockerClient(object):
         self._check_http_status_code(url, r.status_code)
         return r
 
+    def _put(self, url, params=None, headers=None, data=None, stream=False):
+        url = self.base_url + url
+        r = requests.put(url, params=params, headers=headers, data=data,
+                         stream=stream)
+        self._check_http_status_code(url, r.status_code)
+        return r
+
     def _delete(self, url, params=None, stream=False):
         url = self.base_url + url
         r = requests.delete(url, params=params, stream=stream)
@@ -602,3 +609,25 @@ class DockerClient(object):
             params['signal'] = signal
 
         self._post('/containers/{}/kill'.format(id_or_name), params=params)
+
+    def container_upload(self,
+                         container: Union[Container, ContainerName, str],
+                         tar_archive: tarfile.TarFile,
+                         directory: str,
+                         overwrite_dir_non_dir: Optional[bool]=None):
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+
+        params = {'path': directory}
+        if overwrite_dir_non_dir is not None:
+            params['OverwriteDirNonDir'] = overwrite_dir_non_dir
+
+        self._put('/containers/{}/archive'.format(id_or_name),
+            headers={'content-type': 'application/x-tar'},
+            params=params, data=tar_archive, stream=True)
