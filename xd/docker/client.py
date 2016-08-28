@@ -580,6 +580,10 @@ class DockerClient(object):
 
         Send signal to container, and (maybe) wait for the container to exit.
 
+        Note: Prior to Docker version 1.8, kill succeeds (without actually
+        doing anything) when run on existing but stopped containers.  Docker
+        1.8 and newer fails out with a ServerError exception.
+
         Arguments:
           container: The container to remove (id or name).
           signal: Signal to send to container.
