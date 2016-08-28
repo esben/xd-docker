@@ -1354,3 +1354,46 @@ class container_restart_tests(ContextClientTestCase):
         params = post_mock.call_args[1]['params']
         assert 't' in params
         assert params['t'] == 42
+
+
+class container_kill_tests(ContextClientTestCase):
+
+    @mock.patch('requests.post')
+    def test_normal(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_kill("foobar")
+
+    @mock.patch('requests.post')
+    def test_no_such_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 404)
+        with pytest.raises(ClientError) as clienterror:
+            self.client.container_kill('foobar')
+        assert clienterror.value.code == 404
+
+    @mock.patch('requests.post')
+    def test_containername(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_kill(ContainerName("foobar"))
+
+    @mock.patch('requests.post')
+    def test_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_kill(Container(self.client,name="foobar"))
+
+    @mock.patch('requests.post')
+    def test_sigint(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_kill("foobar", signal='SIGINT')
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'signal' in params
+        assert params['signal'] == 'SIGINT'
+
+    @mock.patch('requests.post')
+    def test_sighup(self, post_mock):
+        post_mock.return_value = requests_mock.Response(None, 204)
+        self.client.container_kill("foobar", signal='SIGHUP')
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'signal' in params
+        assert params['signal'] == 'SIGHUP'

@@ -17,7 +17,7 @@ from typing import Optional, Union, Sequence, Dict, Tuple, List
 from xd.docker.container import Container
 from xd.docker.image import Image
 from xd.docker.parameters import ContainerConfig, HostConfig, ContainerName, \
-    Repository, RegistryAuthConfig, VolumeMount, json_update
+    Repository, RegistryAuthConfig, VolumeMount, Signal, json_update
 
 import logging
 log = logging.getLogger(__name__)
@@ -572,3 +572,29 @@ class DockerClient(object):
 
         self._post('/containers/{}/restart'.format(id_or_name),
                    params=params)
+
+    def container_kill(self,
+                       container: Union[Container, ContainerName, str],
+                       signal: Optional[Signal]=None):
+        """Kill container.
+
+        Send signal to container, and (maybe) wait for the container to exit.
+
+        Arguments:
+          container: The container to remove (id or name).
+          signal: Signal to send to container.
+        """
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+
+        params = {}
+        if signal is not None:
+            params['signal'] = signal
+
+        self._post('/containers/{}/kill'.format(id_or_name), params=params)
