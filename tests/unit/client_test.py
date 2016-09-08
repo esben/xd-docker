@@ -10,6 +10,7 @@ import re
 import json
 import copy
 import subprocess
+import tarfile
 
 import requests
 import requests_mock
@@ -18,6 +19,7 @@ from xd.docker.client import *
 from xd.docker.container import *
 from xd.docker.image import *
 from xd.docker.parameters import *
+from xd.docker.exceptions import *
 
 
 class init_tests(unittest.case.TestCase):
@@ -1397,3 +1399,54 @@ class container_kill_tests(ContextClientTestCase):
         params = post_mock.call_args[1]['params']
         assert 'signal' in params
         assert params['signal'] == 'SIGHUP'
+
+
+class container_upload_tests(ContextClientTestCase):
+
+    def setUp(self):
+        tar_buf = io.BytesIO()
+        tar_file = tarfile.TarFile(fileobj=tar_buf, mode='w', dereference=True)
+        with open('foo', 'w') as f:
+            f.write('foobarx\n')
+        tar_file.add('foo')
+        self.tar_file = tar_file
+        super(container_upload_tests, self).setUp()
+
+    @mock.patch('requests.put')
+    def test_str(self, put_mock):
+        put_mock.return_value = requests_mock.Response(None, 200)
+        self.client.container_upload('foo', self.tar_file, 'bar')
+
+    @mock.patch('requests.put')
+    def test_containername(self, put_mock):
+        put_mock.return_value = requests_mock.Response(None, 200)
+        self.client.container_upload(ContainerName('foo'), self.tar_file, 'bar')
+
+    @mock.patch('requests.put')
+    def test_container(self, put_mock):
+        put_mock.return_value = requests_mock.Response(None, 200)
+        self.client.container_upload(Container(self.client, name='foo'),
+                                     self.tar_file, 'bar')
+
+    @mock.patch('requests.put')
+    def test_overwritedirnondir(self, put_mock):
+        put_mock.return_value = requests_mock.Response(None, 200)
+        self.client.container_upload('foo', self.tar_file, 'bar',
+                                     overwrite_dir_non_dir=True)
+        assert 'params' in put_mock.call_args[1]
+        params = put_mock.call_args[1]['params']
+        assert 'OverwriteDirNonDir' in params
+        assert params['OverwriteDirNonDir'] == True
+
+    @mock.patch('requests.put')
+    def test_readonly(self, put_mock):
+        put_mock.return_value = requests_mock.Response(None, 403)
+        with pytest.raises(PermissionDenied):
+            self.client.container_upload('foo', self.tar_file, 'bar')
+
+    @mock.patch('requests.put')
+    def test_incompatible_remote_api(self, put_mock):
+        requests.get = mock.MagicMock(
+            return_value=requests_mock.version_response("1.19", "1.7.1"))
+        with pytest.raises(IncompatibleRemoteAPI):
+            self.client.container_upload('foo', self.tar_file, 'bar')
