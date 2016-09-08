@@ -18,6 +18,7 @@ from xd.docker.container import Container
 from xd.docker.image import Image
 from xd.docker.parameters import ContainerConfig, HostConfig, ContainerName, \
     Repository, RegistryAuthConfig, VolumeMount, Signal, json_update
+from xd.docker.exceptions import IncompatibleRemoteAPI, PermissionDenied
 
 import logging
 log = logging.getLogger(__name__)
@@ -616,6 +617,10 @@ class DockerClient(object):
                          directory: str,
                          overwrite_dir_non_dir: Optional[bool]=None):
 
+        if self.api_version < (1, 20):
+            raise IncompatibleRemoteAPI(
+                "Upload to container was added in API v1.20 (Docker v1.8)")
+
         # Handle convenience argument types
         if isinstance(container, str):
             id_or_name = container
@@ -628,6 +633,13 @@ class DockerClient(object):
         if overwrite_dir_non_dir is not None:
             params['OverwriteDirNonDir'] = overwrite_dir_non_dir
 
-        self._put('/containers/{}/archive'.format(id_or_name),
-            headers={'content-type': 'application/x-tar'},
-            params=params, data=tar_archive, stream=True)
+        try:
+            self._put('/containers/{}/archive'.format(id_or_name),
+                      headers={'content-type': 'application/x-tar'},
+                      params=params, data=tar_archive, stream=True)
+        except ClientError as exc:
+            print(dir(exc))
+            if exc.code == 403:
+                raise PermissionDenied(
+                    "Volume or container rootfs is marked as read-only") \
+                    from exc
