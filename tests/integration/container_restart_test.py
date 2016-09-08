@@ -22,5 +22,5 @@ def test_not_started(docker, stdout):
 def test_no_such_container(docker, stdout):
     with pytest.raises(ClientError) as clienterror:
         with stdout.redirect():
-            docker.container_stop('xd-docker-test')
+            docker.container_restart('xd-docker-test')
     assert clienterror.value.code == 404
