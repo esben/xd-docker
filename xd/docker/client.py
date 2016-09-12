@@ -643,3 +643,40 @@ class DockerClient(object):
                 raise PermissionDenied(
                     "Volume or container rootfs is marked as read-only") \
                     from exc
+
+    def commit(self,
+               container: Union[Container, ContainerName, str],
+               repo: Optional[Union[Repository, str]]=None,
+               comment: Optional[str]=None,
+               author: Optional[str]=None,
+               pause: Optional[bool]=None):
+
+        # Handle convenience argument types
+        if isinstance(container, str):
+            id_or_name = container
+        elif isinstance(container, ContainerName):
+            id_or_name = container.name
+        else:
+            id_or_name = container.id or container.name
+        if isinstance(repo, str):
+            repo = Repository(repo)
+
+        params = {'container': id_or_name}
+        if repo:
+            params['repo'] = repo.name
+            if repo.tag is not None:
+                params['tag'] = repo.tag
+        if comment is not None:
+            params['comment'] = comment
+        if author is not None:
+            params['author'] = author
+        if pause is not None:
+            params['pause'] = pause
+
+        # TODO: add support for 'config' JSON parameter
+        # The ContainerConfig class should be changed to allow image to be
+        # optional, so we can simply pass a instance of that
+
+        # TODO: add support for 'changes' query parameter
+        r = self._post('/commit', params=params)
+        return Image(self, id=r.json()['Id'])
