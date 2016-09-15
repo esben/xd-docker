@@ -1450,3 +1450,86 @@ class container_upload_tests(ContextClientTestCase):
             return_value=requests_mock.version_response("1.19", "1.7.1"))
         with pytest.raises(IncompatibleRemoteAPI):
             self.client.container_upload('foo', self.tar_file, 'bar')
+
+
+class commit_tests(ContextClientTestCase):
+
+    @mock.patch('requests.post')
+    def test_str(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit('foo')
+
+    @mock.patch('requests.post')
+    def test_containername(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit(ContainerName('foo'))
+
+    @mock.patch('requests.post')
+    def test_container(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit(Container('foo'))
+
+    @mock.patch('requests.post')
+    def test_repo_str(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit('foobar', repo='foo')
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'repo' in params
+        assert params['repo'] == 'foo'
+
+    @mock.patch('requests.post')
+    def test_repotag_str(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit('foobar', repo='foo:bar')
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'repo' in params
+        assert params['repo'] == 'foo'
+        assert 'tag' in params
+        assert params['tag'] == 'bar'
+
+    @mock.patch('requests.post')
+    def test_comment(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit('foobar', comment='foo')
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'comment' in params
+        assert params['comment'] == 'foo'
+
+    @mock.patch('requests.post')
+    def test_author(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit('foobar', author='foo')
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'author' in params
+        assert params['author'] == 'foo'
+
+    @mock.patch('requests.post')
+    def test_pause_true(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit('foo', pause=True)
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'pause' in params
+        assert params['pause'] == True
+
+    @mock.patch('requests.post')
+    def test_pause_false(self, post_mock):
+        post_mock.return_value = requests_mock.Response(
+            '{"Id": "596069db4bf5"}', 201)
+        self.client.commit('foo', pause=False)
+        assert 'params' in post_mock.call_args[1]
+        params = post_mock.call_args[1]['params']
+        assert 'pause' in params
+        assert params['pause'] == False
